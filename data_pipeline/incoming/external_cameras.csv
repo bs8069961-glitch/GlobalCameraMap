@@ -1,0 +1,4 @@
+latitude,longitude,country,state,city,road_name,camera_type,enforcement_type,speed_limit,status,verification_status,source,source_url
+21.1702,72.8311,India,Gujarat,Surat,Ring Road,Speed Camera,Speed Enforcement,50,active,verified,External Traffic Authority,https://example.com/surat-camera
+23.0225,72.5714,India,Gujarat,Ahmedabad,SG Highway,Red Light Camera,Red Light Enforcement,,active,verified,External Traffic Authority,https://example.com/ahmedabad-camera
+26.9124,75.7873,India,Rajasthan,Jaipur,Tonk Road,Speed Camera,Speed Enforcement,60,active,pending,External Traffic Authority,https://example.com/jaipur-camera

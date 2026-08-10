@@ -1,0 +1,637 @@
+/* ================================
+   GLOBAL RESET
+================================ */
+
+* {
+
+  margin: 0;
+
+  padding: 0;
+
+  box-sizing: border-box;
+
+}
+
+
+body {
+
+  font-family:
+
+    Arial,
+
+    Helvetica,
+
+    sans-serif;
+
+  background: #f3f4f6;
+
+}
+
+
+
+#root {
+
+  width: 100%;
+
+  height: 100vh;
+
+}
+
+
+
+/* ================================
+   MAIN APP
+================================ */
+
+.app {
+
+  width:100%;
+
+  height:100vh;
+
+  overflow:hidden;
+
+}
+
+
+
+
+/* ================================
+   HEADER
+================================ */
+
+
+.header {
+
+  height:80px;
+
+  background:#1f2937;
+
+  color:white;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:space-between;
+
+  padding:0 30px;
+
+  box-shadow:
+
+  0 3px 10px rgba(0,0,0,0.3);
+
+  position:relative;
+
+  z-index:2000;
+
+}
+
+
+
+.header h1 {
+
+  font-size:28px;
+
+}
+
+
+
+.header h2 {
+
+  font-size:20px;
+
+}
+
+
+
+/* ================================
+   DASHBOARD LAYOUT
+================================ */
+
+
+.dashboard {
+
+  display:flex;
+
+  height:
+
+  calc(100vh - 80px);
+
+}
+
+
+
+
+/* ================================
+   SIDEBAR
+================================ */
+
+
+.sidebar {
+
+
+  width:260px;
+
+  background:#111827;
+
+  color:white;
+
+  padding:20px;
+
+  overflow:auto;
+
+}
+
+
+
+.sidebar h2 {
+
+  margin-bottom:20px;
+
+  text-align:center;
+
+}
+
+
+
+
+/* STAT CARDS */
+
+
+.stat-card {
+
+
+  background:#1f2937;
+
+  padding:18px;
+
+  margin-bottom:15px;
+
+  border-radius:12px;
+
+  text-align:center;
+
+  box-shadow:
+
+  0 4px 10px rgba(0,0,0,0.25);
+
+}
+
+
+
+.stat-card h3 {
+
+
+  font-size:15px;
+
+  color:#d1d5db;
+
+}
+
+
+
+.stat-card p {
+
+
+  margin-top:10px;
+
+  font-size:32px;
+
+  font-weight:bold;
+
+}
+
+
+
+
+/* ================================
+   MAP AREA
+================================ */
+
+
+.map-container {
+
+
+  flex:1;
+
+  position:relative;
+
+}
+
+
+
+
+.map {
+
+
+  width:100%;
+
+  height:100%;
+
+}
+
+
+
+
+/* ================================
+   SEARCH CONTROLS
+================================ */
+
+
+.controls {
+
+
+  position:absolute;
+
+  top:20px;
+
+  left:20px;
+
+  z-index:1000;
+
+  display:flex;
+
+  gap:10px;
+
+}
+
+
+
+.controls input {
+
+
+  width:260px;
+
+  padding:12px 15px;
+
+  border:none;
+
+  outline:none;
+
+  border-radius:8px;
+
+  background:white;
+
+  font-size:15px;
+
+  box-shadow:
+
+  0 3px 10px rgba(0,0,0,.25);
+
+}
+
+
+
+.controls select {
+
+
+  padding:12px;
+
+  border:none;
+
+  border-radius:8px;
+
+  background:white;
+
+  cursor:pointer;
+
+  box-shadow:
+
+  0 3px 10px rgba(0,0,0,.25);
+
+}
+
+
+
+
+
+/* ================================
+   LOADING
+================================ */
+
+
+.loading {
+
+
+  height:100%;
+
+  display:flex;
+
+  justify-content:center;
+
+  align-items:center;
+
+  font-size:25px;
+
+  font-weight:bold;
+
+}
+
+
+
+
+
+/* ================================
+   LEAFLET POPUP
+================================ */
+
+
+.leaflet-popup-content {
+
+
+  min-width:220px;
+
+}
+
+
+
+.leaflet-popup-content h3 {
+
+
+  color:#2563eb;
+
+  margin-bottom:10px;
+
+}
+
+
+
+.leaflet-popup-content p {
+
+
+  margin:8px 0;
+
+}
+
+
+
+
+
+/* ================================
+   REPORT BUTTON
+================================ */
+
+
+button {
+
+
+  padding:10px 15px;
+
+  border:none;
+
+  border-radius:8px;
+
+  cursor:pointer;
+
+}
+
+
+
+
+/* ================================
+   REPORT MODAL
+================================ */
+
+
+.report-modal {
+
+
+  position:absolute;
+
+  top:80px;
+
+  right:30px;
+
+  width:330px;
+
+  background:white;
+
+  padding:20px;
+
+  border-radius:15px;
+
+  z-index:3000;
+
+  box-shadow:
+
+  0 5px 20px rgba(0,0,0,.3);
+
+}
+
+
+
+.report-modal h2 {
+
+
+  margin-bottom:15px;
+
+}
+
+
+
+.report-modal input,
+
+.report-modal textarea {
+
+
+  width:100%;
+
+  padding:10px;
+
+  margin-bottom:10px;
+
+  border:1px solid #ccc;
+
+  border-radius:8px;
+
+}
+
+
+
+.report-modal textarea {
+
+
+  height:100px;
+
+}
+
+
+
+
+/* ================================
+   ADMIN DASHBOARD
+================================ */
+
+
+.admin {
+
+
+  height:100%;
+
+  padding:30px;
+
+  background:#f3f4f6;
+
+  overflow:auto;
+
+}
+
+
+
+.admin h1 {
+
+
+  margin-bottom:20px;
+
+}
+
+
+
+
+.report-card {
+
+
+  background:white;
+
+  padding:20px;
+
+  margin-bottom:15px;
+
+  border-radius:12px;
+
+  box-shadow:
+
+  0 4px 12px rgba(0,0,0,.15);
+
+}
+
+
+
+.report-card h3 {
+
+
+  margin-bottom:10px;
+
+}
+
+
+
+.report-card p {
+
+
+  margin:8px 0;
+
+}
+
+
+
+.report-card button {
+
+
+  margin-right:10px;
+
+  background:#2563eb;
+
+  color:white;
+
+}
+
+
+
+.report-card button:hover {
+
+
+  opacity:.85;
+
+}
+
+
+
+
+/* ================================
+   MOBILE
+================================ */
+
+
+@media(max-width:768px){
+
+
+.header {
+
+
+  height:auto;
+
+  padding:15px;
+
+  flex-direction:column;
+
+  gap:10px;
+
+}
+
+
+
+.header h1 {
+
+
+  font-size:22px;
+
+}
+
+
+
+.dashboard {
+
+
+  flex-direction:column;
+
+}
+
+
+
+.sidebar {
+
+
+  width:100%;
+
+  height:auto;
+
+}
+
+
+
+.controls {
+
+
+  flex-direction:column;
+
+  left:10px;
+
+  right:10px;
+
+}
+
+
+
+.controls input {
+
+
+  width:100%;
+
+}
+
+
+.report-modal {
+
+
+  right:10px;
+
+  left:10px;
+
+  width:auto;
+
+}
+
+
+}

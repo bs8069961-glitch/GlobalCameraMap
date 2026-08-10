@@ -1,0 +1,1399 @@
+/* =========================================================
+   GLOBAL CAMERA MAP
+   CameraMap.css
+   ========================================================= */
+
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.camera-map-page {
+    width: 100%;
+    min-height: 100vh;
+
+    background: #f3f4f6;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.camera-map-header {
+    height: 70px;
+
+    background: #1f2937;
+
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 25px;
+
+    box-sizing: border-box;
+
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+
+    position: relative;
+
+    z-index: 1000;
+}
+
+
+/* LEFT SIDE */
+
+.camera-map-header-left {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+}
+
+
+.camera-map-header-left h1 {
+    margin: 0;
+
+    font-size: 22px;
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* RIGHT SIDE */
+
+.camera-map-header-right {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.camera-map-header-button {
+    border: none;
+
+    background: #374151;
+
+    color: white;
+
+    padding: 9px 15px;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.camera-map-header-button:hover {
+    background: #4b5563;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
+
+.camera-map-content {
+    flex: 1;
+
+    display: flex;
+
+    position: relative;
+
+    min-height: calc(100vh - 70px);
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   LEFT CONTROL PANEL
+   ========================================================= */
+
+.camera-map-sidebar {
+    width: 350px;
+
+    background: white;
+
+    border-right: 1px solid #d1d5db;
+
+    padding: 20px;
+
+    box-sizing: border-box;
+
+    overflow-y: auto;
+
+    z-index: 500;
+
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+}
+
+
+/* SIDEBAR TITLE */
+
+.camera-map-sidebar h2 {
+    margin-top: 0;
+
+    margin-bottom: 6px;
+
+    color: #111827;
+
+    font-size: 21px;
+}
+
+
+.camera-map-sidebar-subtitle {
+    margin-top: 0;
+
+    margin-bottom: 20px;
+
+    color: #6b7280;
+
+    font-size: 14px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   SEARCH SECTION
+   ========================================================= */
+
+.route-search-section {
+    margin-bottom: 20px;
+}
+
+
+.route-search-section label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #374151;
+
+    font-size: 14px;
+
+    font-weight: 600;
+}
+
+
+.route-search-input {
+    width: 100%;
+
+    padding: 12px 13px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    font-size: 14px;
+
+    background: #ffffff;
+
+    color: #111827;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.route-search-input:focus {
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+
+.route-search-input::placeholder {
+    color: #9ca3af;
+}
+
+
+/* =========================================================
+   LOCATION BUTTON
+   ========================================================= */
+
+.location-button {
+    width: 100%;
+
+    margin-top: 10px;
+
+    padding: 11px 14px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #2563eb;
+
+    color: white;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.location-button:hover {
+    background: #1d4ed8;
+
+    transform: translateY(-1px);
+}
+
+
+.location-button:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   ROUTE BUTTON
+   ========================================================= */
+
+.route-button {
+    width: 100%;
+
+    margin-top: 10px;
+
+    padding: 11px 14px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #059669;
+
+    color: white;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.route-button:hover {
+    background: #047857;
+
+    transform: translateY(-1px);
+}
+
+
+.route-button:disabled {
+    background: #9ca3af;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+
+/* =========================================================
+   ROUTE INFORMATION
+   ========================================================= */
+
+.route-info {
+    margin-top: 18px;
+
+    padding: 15px;
+
+    background: #eff6ff;
+
+    border: 1px solid #bfdbfe;
+
+    border-radius: 9px;
+}
+
+
+.route-info h3 {
+    margin-top: 0;
+
+    margin-bottom: 10px;
+
+    color: #1e3a8a;
+
+    font-size: 16px;
+}
+
+
+.route-info p {
+    margin: 6px 0;
+
+    color: #374151;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   CAMERA SUMMARY
+   ========================================================= */
+
+.camera-summary {
+    margin-top: 20px;
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 10px;
+}
+
+
+.camera-summary-card {
+    padding: 14px;
+
+    border-radius: 9px;
+
+    background: #f9fafb;
+
+    border: 1px solid #e5e7eb;
+
+    text-align: center;
+}
+
+
+.camera-summary-card h3 {
+    margin: 0 0 5px;
+
+    font-size: 22px;
+
+    color: #111827;
+}
+
+
+.camera-summary-card p {
+    margin: 0;
+
+    font-size: 12px;
+
+    color: #6b7280;
+}
+
+
+/* SPEED CAMERA */
+
+.camera-summary-card.speed {
+    background: #fff7ed;
+
+    border-color: #fed7aa;
+}
+
+
+.camera-summary-card.speed h3 {
+    color: #ea580c;
+}
+
+
+/* RED LIGHT CAMERA */
+
+.camera-summary-card.red-light {
+    background: #fef2f2;
+
+    border-color: #fecaca;
+}
+
+
+.camera-summary-card.red-light h3 {
+    color: #dc2626;
+}
+
+
+/* =========================================================
+   CAMERA LIST
+   ========================================================= */
+
+.camera-list-section {
+    margin-top: 25px;
+}
+
+
+.camera-list-section h3 {
+    margin-bottom: 12px;
+
+    color: #111827;
+
+    font-size: 17px;
+}
+
+
+.camera-list {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+}
+
+
+/* CAMERA CARD */
+
+.camera-list-card {
+    padding: 13px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 9px;
+
+    background: white;
+
+    cursor: pointer;
+
+    transition:
+        box-shadow 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.camera-list-card:hover {
+    border-color: #93c5fd;
+
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+
+    transform: translateY(-1px);
+}
+
+
+.camera-list-card h4 {
+    margin: 0 0 6px;
+
+    color: #111827;
+
+    font-size: 14px;
+}
+
+
+.camera-list-card p {
+    margin: 4px 0;
+
+    color: #6b7280;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   SPEED CAMERA CARD
+   ========================================================= */
+
+.camera-list-card.speed-camera {
+    border-left: 4px solid #f59e0b;
+}
+
+
+.camera-list-card.speed-camera h4 {
+    color: #b45309;
+}
+
+
+/* =========================================================
+   RED LIGHT CARD
+   ========================================================= */
+
+.camera-list-card.red-light-camera {
+    border-left: 4px solid #ef4444;
+}
+
+
+.camera-list-card.red-light-camera h4 {
+    color: #b91c1c;
+}
+
+
+/* =========================================================
+   VERIFIED CAMERA
+   ========================================================= */
+
+.camera-list-card.verified {
+    background: #f0fdf4;
+
+    border-color: #bbf7d0;
+}
+
+
+/* =========================================================
+   PENDING CAMERA
+   ========================================================= */
+
+.camera-list-card.pending {
+    background: #fffbeb;
+
+    border-color: #fde68a;
+}
+
+
+/* =========================================================
+   MAP CONTAINER
+   ========================================================= */
+
+.camera-map-container {
+    flex: 1;
+
+    position: relative;
+
+    min-width: 0;
+
+    min-height: 500px;
+
+    background: #e5e7eb;
+}
+
+
+/* =========================================================
+   MAP
+   ========================================================= */
+
+.camera-map {
+    width: 100%;
+
+    height: 100%;
+
+    min-height: 500px;
+}
+
+
+/* If using Leaflet */
+
+.camera-map-container .leaflet-container {
+    width: 100%;
+
+    height: 100%;
+
+    min-height: 500px;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    z-index: 1;
+}
+
+
+/* =========================================================
+   MAP CONTROLS
+   ========================================================= */
+
+.map-controls {
+    position: absolute;
+
+    top: 15px;
+
+    right: 15px;
+
+    z-index: 1000;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+
+.map-control-button {
+    min-width: 45px;
+
+    height: 45px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: white;
+
+    color: #111827;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.18);
+
+    cursor: pointer;
+
+    font-size: 18px;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.map-control-button:hover {
+    background: #f3f4f6;
+
+    transform: scale(1.04);
+}
+
+
+/* =========================================================
+   ROUTE DETECTION PANEL
+   ========================================================= */
+
+.route-camera-panel {
+    position: absolute;
+
+    left: 20px;
+
+    bottom: 20px;
+
+    width: 330px;
+
+    max-height: 420px;
+
+    overflow-y: auto;
+
+    z-index: 1000;
+
+    background: white;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 5px 20px rgba(0, 0, 0, 0.2);
+
+    padding: 18px;
+
+    box-sizing: border-box;
+}
+
+
+.route-camera-panel h3 {
+    margin-top: 0;
+
+    margin-bottom: 8px;
+
+    color: #111827;
+
+    font-size: 17px;
+}
+
+
+.route-camera-panel p {
+    color: #6b7280;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   ROUTE CAMERA RESULT
+   ========================================================= */
+
+.route-camera-result {
+    padding: 12px;
+
+    margin-top: 10px;
+
+    border-radius: 8px;
+
+    background: #fff7ed;
+
+    border: 1px solid #fed7aa;
+}
+
+
+.route-camera-result strong {
+    color: #9a3412;
+}
+
+
+.route-camera-result span {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #4b5563;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   SPEED CAMERA WARNING
+   ========================================================= */
+
+.speed-camera-warning {
+    padding: 13px;
+
+    margin-bottom: 10px;
+
+    border-radius: 9px;
+
+    background: #fff7ed;
+
+    border: 1px solid #fdba74;
+
+    color: #9a3412;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+}
+
+
+.speed-camera-warning strong {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #c2410c;
+}
+
+
+/* =========================================================
+   NO CAMERAS
+   ========================================================= */
+
+.no-cameras {
+    padding: 18px;
+
+    text-align: center;
+
+    border-radius: 9px;
+
+    background: #f9fafb;
+
+    border: 1px dashed #d1d5db;
+
+    color: #6b7280;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.camera-map-loading {
+    position: absolute;
+
+    top: 50%;
+
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    z-index: 2000;
+
+    padding: 18px 25px;
+
+    background: white;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.18);
+
+    color: #374151;
+
+    font-size: 14px;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.camera-map-error {
+    margin: 15px;
+
+    padding: 13px 15px;
+
+    border-radius: 8px;
+
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+
+    color: #b91c1c;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   CAMERA MARKERS
+   ========================================================= */
+
+.camera-marker {
+    width: 32px;
+
+    height: 32px;
+
+    border-radius: 50% 50% 50% 0;
+
+    transform: rotate(-45deg);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+
+.camera-marker span {
+    transform: rotate(45deg);
+
+    font-size: 15px;
+}
+
+
+/* SPEED */
+
+.speed-camera-marker {
+    background: #f59e0b;
+
+    border: 3px solid white;
+}
+
+
+/* RED LIGHT */
+
+.red-light-camera-marker {
+    background: #ef4444;
+
+    border: 3px solid white;
+}
+
+
+/* TRAFFIC */
+
+.traffic-camera-marker {
+    background: #2563eb;
+
+    border: 3px solid white;
+}
+
+
+/* =========================================================
+   CAMERA POPUP
+   ========================================================= */
+
+.camera-popup {
+    min-width: 220px;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+}
+
+
+.camera-popup h3 {
+    margin: 0 0 8px;
+
+    color: #111827;
+
+    font-size: 16px;
+}
+
+
+.camera-popup p {
+    margin: 5px 0;
+
+    color: #4b5563;
+
+    font-size: 13px;
+}
+
+
+.camera-popup strong {
+    color: #111827;
+}
+
+
+/* =========================================================
+   DISTANCE BADGE
+   ========================================================= */
+
+.distance-badge {
+    display: inline-block;
+
+    margin-top: 7px;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    background: #dbeafe;
+
+    color: #1d4ed8;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   NEAREST CAMERA
+   ========================================================= */
+
+.nearest-camera {
+    border: 2px solid #2563eb;
+
+    background: #eff6ff;
+}
+
+
+.nearest-camera-badge {
+    display: inline-block;
+
+    margin-bottom: 7px;
+
+    padding: 4px 8px;
+
+    border-radius: 20px;
+
+    background: #2563eb;
+
+    color: white;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   ROUTE LINE
+   ========================================================= */
+
+.route-line {
+    stroke-width: 5;
+
+    opacity: 0.8;
+}
+
+
+/* =========================================================
+   LEGEND
+   ========================================================= */
+
+.map-legend {
+    position: absolute;
+
+    right: 20px;
+
+    bottom: 20px;
+
+    z-index: 1000;
+
+    background: white;
+
+    padding: 14px 16px;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.18);
+}
+
+
+.map-legend h4 {
+    margin: 0 0 10px;
+
+    color: #111827;
+
+    font-size: 14px;
+}
+
+
+.legend-item {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin: 7px 0;
+
+    color: #4b5563;
+
+    font-size: 12px;
+}
+
+
+.legend-dot {
+    width: 12px;
+
+    height: 12px;
+
+    border-radius: 50%;
+}
+
+
+.legend-dot.speed {
+    background: #f59e0b;
+}
+
+
+.legend-dot.red-light {
+    background: #ef4444;
+}
+
+
+.legend-dot.traffic {
+    background: #2563eb;
+}
+
+
+.legend-dot.user {
+    background: #10b981;
+}
+
+
+/* =========================================================
+   USER LOCATION
+   ========================================================= */
+
+.user-location-marker {
+    width: 18px;
+
+    height: 18px;
+
+    border-radius: 50%;
+
+    background: #10b981;
+
+    border: 4px solid white;
+
+    box-shadow:
+        0 0 0 4px rgba(16, 185, 129, 0.25),
+        0 2px 7px rgba(0, 0, 0, 0.25);
+}
+
+
+/* =========================================================
+   FILTER SECTION
+   ========================================================= */
+
+.camera-filters {
+    margin-top: 20px;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+
+.camera-filters h3 {
+    margin: 0 0 12px;
+
+    font-size: 15px;
+
+    color: #111827;
+}
+
+
+.filter-row {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 9px;
+}
+
+
+.filter-row input {
+    width: 16px;
+
+    height: 16px;
+
+    cursor: pointer;
+}
+
+
+.filter-row label {
+    color: #4b5563;
+
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   STATUS BADGES
+   ========================================================= */
+
+.status-badge {
+    display: inline-block;
+
+    padding: 4px 8px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+.status-badge.verified {
+    background: #dcfce7;
+
+    color: #166534;
+}
+
+
+.status-badge.pending {
+    background: #fef3c7;
+
+    color: #92400e;
+}
+
+
+.status-badge.active {
+    background: #dcfce7;
+
+    color: #166534;
+}
+
+
+.status-badge.inactive {
+    background: #fee2e2;
+
+    color: #991b1b;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+.camera-map-sidebar::-webkit-scrollbar,
+.route-camera-panel::-webkit-scrollbar {
+    width: 7px;
+}
+
+
+.camera-map-sidebar::-webkit-scrollbar-track,
+.route-camera-panel::-webkit-scrollbar-track {
+    background: #f3f4f6;
+}
+
+
+.camera-map-sidebar::-webkit-scrollbar-thumb,
+.route-camera-panel::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+
+    border-radius: 10px;
+}
+
+
+.camera-map-sidebar::-webkit-scrollbar-thumb:hover,
+.route-camera-panel::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+
+/* =========================================================
+   RESPONSIVE — TABLET
+   ========================================================= */
+
+@media (max-width: 1000px) {
+
+    .camera-map-sidebar {
+        width: 300px;
+    }
+
+
+    .route-camera-panel {
+        width: 290px;
+    }
+
+
+    .camera-map-header-left h1 {
+        font-size: 19px;
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .camera-map-page {
+        overflow: auto;
+    }
+
+
+    .camera-map-header {
+        height: auto;
+
+        min-height: 65px;
+
+        padding: 12px 15px;
+
+        flex-wrap: wrap;
+
+        gap: 10px;
+    }
+
+
+    .camera-map-header-left h1 {
+        font-size: 18px;
+    }
+
+
+    .camera-map-header-right {
+        width: 100%;
+
+        justify-content: flex-start;
+
+        overflow-x: auto;
+    }
+
+
+    .camera-map-content {
+        flex-direction: column;
+
+        min-height: auto;
+
+        overflow: visible;
+    }
+
+
+    .camera-map-sidebar {
+        width: 100%;
+
+        border-right: none;
+
+        border-bottom: 1px solid #d1d5db;
+
+        max-height: none;
+
+        padding: 15px;
+    }
+
+
+    .camera-map-container {
+        width: 100%;
+
+        height: 65vh;
+
+        min-height: 450px;
+    }
+
+
+    .camera-map-container .leaflet-container {
+        min-height: 450px;
+    }
+
+
+    .route-camera-panel {
+        left: 10px;
+
+        right: 10px;
+
+        bottom: 10px;
+
+        width: auto;
+
+        max-height: 280px;
+    }
+
+
+    .map-legend {
+        right: 10px;
+
+        bottom: 300px;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+    .camera-map-header-left h1 {
+        font-size: 16px;
+    }
+
+
+    .camera-map-header-button {
+        padding: 7px 10px;
+
+        font-size: 12px;
+    }
+
+
+    .camera-map-sidebar {
+        padding: 12px;
+    }
+
+
+    .camera-summary {
+        grid-template-columns: 1fr;
+    }
+
+
+    .route-camera-panel {
+        padding: 13px;
+    }
+
+
+    .map-legend {
+        display: none;
+    }
+
+}

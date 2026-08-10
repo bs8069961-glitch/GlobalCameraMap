@@ -1,0 +1,491 @@
+.admin-panel {
+
+
+    min-height: calc(100vh - 80px);
+
+    padding: 30px;
+
+    background:#f3f6fb;
+
+}
+
+
+
+
+.admin-panel h1 {
+
+
+    text-align:center;
+
+    color:#1f2937;
+
+    margin-bottom:30px;
+
+    font-size:32px;
+
+
+}
+
+
+
+
+
+.admin-panel h2 {
+
+
+    margin-top:35px;
+
+    color:#374151;
+
+}
+
+
+
+
+
+
+/* ==========================
+   MESSAGE BOX
+========================== */
+
+
+.admin-message {
+
+
+    max-width:600px;
+
+    margin:0 auto 25px;
+
+    padding:15px;
+
+    text-align:center;
+
+    border-radius:10px;
+
+    background:white;
+
+    color:#2563eb;
+
+    font-weight:600;
+
+    box-shadow:0 5px 15px rgba(0,0,0,.1);
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   ADD CAMERA FORM
+========================== */
+
+
+.camera-form {
+
+
+    background:white;
+
+    padding:25px;
+
+    border-radius:15px;
+
+
+    display:grid;
+
+
+    grid-template-columns:
+
+    repeat(auto-fit,minmax(220px,1fr));
+
+
+    gap:15px;
+
+
+    max-width:1100px;
+
+
+    margin:auto;
+
+
+    box-shadow:
+
+    0 8px 25px rgba(0,0,0,.12);
+
+
+}
+
+
+
+
+
+
+
+.camera-form input,
+
+
+.camera-form select {
+
+
+    padding:12px;
+
+
+    border:1px solid #d1d5db;
+
+
+    border-radius:8px;
+
+
+    font-size:15px;
+
+
+    outline:none;
+
+
+}
+
+
+
+
+
+
+.camera-form input:focus,
+
+
+.camera-form select:focus {
+
+
+    border-color:#2563eb;
+
+
+}
+
+
+
+
+
+
+
+.camera-form button {
+
+
+    background:#2563eb;
+
+
+    color:white;
+
+
+    border:none;
+
+
+    border-radius:8px;
+
+
+    padding:12px;
+
+
+    cursor:pointer;
+
+
+    font-size:16px;
+
+
+    font-weight:600;
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+
+.camera-form button:hover {
+
+
+    background:#1d4ed8;
+
+
+    transform:translateY(-2px);
+
+
+}
+
+
+
+
+
+
+
+
+
+
+/* ==========================
+   CAMERA LIST
+========================== */
+
+
+
+.camera-list {
+
+
+    display:flex;
+
+
+    flex-direction:column;
+
+
+    gap:18px;
+
+
+    margin-top:20px;
+
+
+}
+
+
+
+
+
+
+.camera-item {
+
+
+    background:white;
+
+
+    border-radius:15px;
+
+
+    padding:20px;
+
+
+    display:flex;
+
+
+    justify-content:space-between;
+
+
+    align-items:center;
+
+
+    gap:20px;
+
+
+    box-shadow:
+
+
+    0 6px 20px rgba(0,0,0,.1);
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+
+
+
+.camera-item:hover {
+
+
+    transform:translateY(-4px);
+
+
+}
+
+
+
+
+
+
+.camera-item h3 {
+
+
+    margin:0 0 8px;
+
+
+    color:#2563eb;
+
+
+}
+
+
+
+
+
+
+
+.camera-item p {
+
+
+    margin:5px 0;
+
+
+    color:#4b5563;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   ACTION BUTTONS
+========================== */
+
+
+.camera-item button {
+
+
+    margin:5px;
+
+
+    padding:10px 15px;
+
+
+    border:none;
+
+
+    border-radius:8px;
+
+
+    cursor:pointer;
+
+
+    color:white;
+
+
+    font-weight:600;
+
+
+}
+
+
+
+
+
+.camera-item button:first-of-type {
+
+
+    background:#16a34a;
+
+
+}
+
+
+
+
+.camera-item button:first-of-type:hover {
+
+
+    background:#15803d;
+
+
+}
+
+
+
+
+
+.camera-item button:last-of-type {
+
+
+    background:#dc2626;
+
+
+}
+
+
+
+
+.camera-item button:last-of-type:hover {
+
+
+    background:#b91c1c;
+
+
+}
+
+
+
+
+
+
+
+
+/* ==========================
+   RESPONSIVE
+========================== */
+
+
+@media(max-width:768px){
+
+
+    .admin-panel {
+
+
+        padding:15px;
+
+
+    }
+
+
+
+
+
+    .admin-panel h1 {
+
+
+        font-size:24px;
+
+
+    }
+
+
+
+
+
+    .camera-item {
+
+
+        flex-direction:column;
+
+
+        align-items:flex-start;
+
+
+    }
+
+
+
+
+
+    .camera-item button {
+
+
+        width:100%;
+
+
+        margin-top:8px;
+
+
+    }
+
+
+}

@@ -1,0 +1,480 @@
+.pending-page {
+
+    min-height: calc(100vh - 80px);
+
+    padding: 30px;
+
+    background:#f3f6fb;
+
+}
+
+
+
+
+
+.pending-page h1 {
+
+
+    text-align:center;
+
+    color:#1f2937;
+
+    font-size:32px;
+
+    margin-bottom:35px;
+
+
+}
+
+
+
+
+
+
+
+/* ==========================
+   MESSAGE
+========================== */
+
+
+.pending-message {
+
+
+    max-width:600px;
+
+    margin:0 auto 25px;
+
+
+    padding:15px;
+
+
+    text-align:center;
+
+
+    background:white;
+
+
+    border-radius:10px;
+
+
+    color:#2563eb;
+
+
+    font-weight:600;
+
+
+    box-shadow:
+
+    0 5px 15px rgba(0,0,0,.1);
+
+
+}
+
+
+
+
+
+
+
+
+/* ==========================
+   EMPTY BOX
+========================== */
+
+
+.empty-box {
+
+
+    background:white;
+
+
+    max-width:500px;
+
+
+    margin:40px auto;
+
+
+    padding:30px;
+
+
+    text-align:center;
+
+
+    border-radius:15px;
+
+
+    font-size:20px;
+
+
+    color:#16a34a;
+
+
+    font-weight:600;
+
+
+    box-shadow:
+
+    0 8px 25px rgba(0,0,0,.12);
+
+
+}
+
+
+
+
+
+
+
+
+/* ==========================
+   REPORT LIST
+========================== */
+
+
+.report-list {
+
+
+    display:flex;
+
+
+    flex-direction:column;
+
+
+    gap:20px;
+
+
+    max-width:1100px;
+
+
+    margin:auto;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   REPORT CARD
+========================== */
+
+
+.report-card {
+
+
+    background:white;
+
+
+    border-radius:16px;
+
+
+    padding:25px;
+
+
+    display:flex;
+
+
+    justify-content:space-between;
+
+
+    align-items:center;
+
+
+    gap:25px;
+
+
+    box-shadow:
+
+
+    0 8px 25px rgba(0,0,0,.12);
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+
+.report-card:hover {
+
+
+    transform:translateY(-4px);
+
+
+}
+
+
+
+
+
+
+
+
+
+.report-info h2 {
+
+
+    margin:0 0 15px;
+
+
+    color:#2563eb;
+
+
+}
+
+
+
+
+
+.report-info p {
+
+
+    margin:8px 0;
+
+
+    color:#4b5563;
+
+
+    font-size:15px;
+
+
+}
+
+
+
+
+
+
+
+
+/* ==========================
+   ACTION BUTTONS
+========================== */
+
+
+.report-actions {
+
+
+    display:flex;
+
+
+    flex-direction:column;
+
+
+    gap:12px;
+
+
+    min-width:160px;
+
+
+}
+
+
+
+
+
+.report-actions button {
+
+
+    padding:12px 18px;
+
+
+    border:none;
+
+
+    border-radius:10px;
+
+
+    color:white;
+
+
+    cursor:pointer;
+
+
+    font-size:15px;
+
+
+    font-weight:600;
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+
+
+
+.approve-btn {
+
+
+    background:#16a34a;
+
+
+}
+
+
+
+
+
+.approve-btn:hover {
+
+
+    background:#15803d;
+
+
+    transform:translateY(-2px);
+
+
+}
+
+
+
+
+
+
+
+.reject-btn {
+
+
+    background:#dc2626;
+
+
+}
+
+
+
+
+
+.reject-btn:hover {
+
+
+    background:#b91c1c;
+
+
+    transform:translateY(-2px);
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   LOADING
+========================== */
+
+
+.pending-page p {
+
+
+    text-align:center;
+
+
+    font-size:18px;
+
+
+    color:#4b5563;
+
+
+}
+
+
+
+
+
+
+
+
+/* ==========================
+   RESPONSIVE
+========================== */
+
+
+@media(max-width:768px){
+
+
+
+    .pending-page {
+
+
+        padding:15px;
+
+
+    }
+
+
+
+
+
+
+    .pending-page h1 {
+
+
+        font-size:24px;
+
+
+    }
+
+
+
+
+
+
+    .report-card {
+
+
+        flex-direction:column;
+
+
+        align-items:flex-start;
+
+
+    }
+
+
+
+
+
+
+
+    .report-actions {
+
+
+        width:100%;
+
+
+    }
+
+
+
+
+
+
+
+    .report-actions button {
+
+
+        width:100%;
+
+
+    }
+
+
+}

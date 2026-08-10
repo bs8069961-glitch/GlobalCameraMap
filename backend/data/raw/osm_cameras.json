@@ -1,0 +1,272 @@
+[
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10709257849",
+        "latitude": 30.6843105,
+        "longitude": 76.8468988,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10709257849",
+        "raw_data": {
+            "type": "node",
+            "id": 10709257849,
+            "lat": 30.6843105,
+            "lon": 76.8468988,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.878912",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10709269348",
+        "latitude": 30.6850398,
+        "longitude": 76.8469751,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10709269348",
+        "raw_data": {
+            "type": "node",
+            "id": 10709269348,
+            "lat": 30.6850398,
+            "lon": 76.8469751,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.878952",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10709276731",
+        "latitude": 30.6851903,
+        "longitude": 76.846133,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10709276731",
+        "raw_data": {
+            "type": "node",
+            "id": 10709276731,
+            "lat": 30.6851903,
+            "lon": 76.846133,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.878963",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10712132815",
+        "latitude": 30.7080443,
+        "longitude": 76.836835,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10712132815",
+        "raw_data": {
+            "type": "node",
+            "id": 10712132815,
+            "lat": 30.7080443,
+            "lon": 76.836835,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.879006",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10711495314",
+        "latitude": 30.7123125,
+        "longitude": 76.8221157,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10711495314",
+        "raw_data": {
+            "type": "node",
+            "id": 10711495314,
+            "lat": 30.7123125,
+            "lon": 76.8221157,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.878970",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10712116859",
+        "latitude": 30.7175185,
+        "longitude": 76.8117979,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10712116859",
+        "raw_data": {
+            "type": "node",
+            "id": 10712116859,
+            "lat": 30.7175185,
+            "lon": 76.8117979,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.878991",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10712055862",
+        "latitude": 30.717665,
+        "longitude": 76.8123556,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10712055862",
+        "raw_data": {
+            "type": "node",
+            "id": 10712055862,
+            "lat": 30.717665,
+            "lon": 76.8123556,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.878976",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10712116137",
+        "latitude": 30.7180399,
+        "longitude": 76.812542,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10712116137",
+        "raw_data": {
+            "type": "node",
+            "id": 10712116137,
+            "lat": 30.7180399,
+            "lon": 76.812542,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.878981",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10712123350",
+        "latitude": 30.7180743,
+        "longitude": 76.8122019,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10712123350",
+        "raw_data": {
+            "type": "node",
+            "id": 10712123350,
+            "lat": 30.7180743,
+            "lon": 76.8122019,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.878996",
+        "last_verified": null
+    },
+    {
+        "source": "OpenStreetMap",
+        "source_id": "10712132705",
+        "latitude": 30.7182865,
+        "longitude": 76.8119871,
+        "country": "India",
+        "state": "Chandigarh",
+        "city": "Chandigarh",
+        "road_name": "Unknown Road",
+        "camera_type": "Surveillance Camera",
+        "enforcement_type": "surveillance",
+        "speed_limit": null,
+        "status": "active",
+        "verification_status": "pending",
+        "source_url": "https://www.openstreetmap.org/node/10712132705",
+        "raw_data": {
+            "type": "node",
+            "id": 10712132705,
+            "lat": 30.7182865,
+            "lon": 76.8119871,
+            "tags": {
+                "man_made": "surveillance"
+            }
+        },
+        "imported_at": "2026-08-08T23:12:04.879001",
+        "last_verified": null
+    }
+]

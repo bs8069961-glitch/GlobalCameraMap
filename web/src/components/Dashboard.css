@@ -1,0 +1,383 @@
+.dashboard {
+
+
+    min-height:calc(100vh - 80px);
+
+
+    padding:30px;
+
+
+    background:#f3f6fb;
+
+
+}
+
+
+
+
+
+
+
+.dashboard h1 {
+
+
+    text-align:center;
+
+
+    color:#1f2937;
+
+
+    font-size:32px;
+
+
+    margin-bottom:35px;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   LOADING
+========================== */
+
+
+.loading {
+
+
+    text-align:center;
+
+
+    color:#4b5563;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   STATS GRID
+========================== */
+
+
+.stats-grid {
+
+
+    max-width:1200px;
+
+
+    margin:auto;
+
+
+    display:grid;
+
+
+    grid-template-columns:
+
+
+    repeat(auto-fit,minmax(250px,1fr));
+
+
+    gap:25px;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   STAT CARD
+========================== */
+
+
+.stat-card {
+
+
+    background:white;
+
+
+    padding:25px;
+
+
+    border-radius:16px;
+
+
+    text-align:center;
+
+
+    box-shadow:
+
+
+    0 8px 25px rgba(0,0,0,.12);
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+
+
+.stat-card:hover {
+
+
+    transform:translateY(-6px);
+
+
+}
+
+
+
+
+
+
+
+
+.stat-card h2 {
+
+
+    font-size:35px;
+
+
+    margin:0 0 10px;
+
+
+}
+
+
+
+
+
+
+
+
+.stat-card h3 {
+
+
+    color:#374151;
+
+
+    margin:10px 0;
+
+
+    font-size:18px;
+
+
+}
+
+
+
+
+
+
+
+
+.stat-card p {
+
+
+    font-size:38px;
+
+
+    font-weight:700;
+
+
+    color:#2563eb;
+
+
+    margin:10px 0 0;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   DASHBOARD BUTTONS
+========================== */
+
+
+.dashboard-buttons {
+
+
+    max-width:900px;
+
+
+    margin:45px auto 0;
+
+
+    display:flex;
+
+
+    justify-content:center;
+
+
+    gap:20px;
+
+
+    flex-wrap:wrap;
+
+
+}
+
+
+
+
+
+
+
+.dashboard-buttons button {
+
+
+    padding:15px 25px;
+
+
+    border:none;
+
+
+    border-radius:12px;
+
+
+    background:#2563eb;
+
+
+    color:white;
+
+
+    font-size:16px;
+
+
+    font-weight:600;
+
+
+    cursor:pointer;
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+
+
+
+.dashboard-buttons button:hover {
+
+
+    background:#1d4ed8;
+
+
+    transform:translateY(-3px);
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   RESPONSIVE
+========================== */
+
+
+@media(max-width:768px){
+
+
+
+    .dashboard {
+
+
+        padding:15px;
+
+
+    }
+
+
+
+
+
+
+    .dashboard h1 {
+
+
+        font-size:24px;
+
+
+    }
+
+
+
+
+
+
+
+    .stats-grid {
+
+
+        grid-template-columns:1fr;
+
+
+    }
+
+
+
+
+
+
+    .dashboard-buttons {
+
+
+        flex-direction:column;
+
+
+    }
+
+
+
+
+
+
+    .dashboard-buttons button {
+
+
+        width:100%;
+
+
+    }
+
+
+}

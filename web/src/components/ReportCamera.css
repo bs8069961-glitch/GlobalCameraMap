@@ -1,0 +1,319 @@
+.report-page {
+
+
+    min-height:calc(100vh - 80px);
+
+    padding:30px;
+
+    background:#f3f6fb;
+
+
+}
+
+
+
+
+.report-page h1 {
+
+
+    text-align:center;
+
+    color:#1f2937;
+
+    font-size:32px;
+
+    margin-bottom:35px;
+
+
+}
+
+
+
+
+
+
+
+/* ==========================
+   MESSAGE
+========================== */
+
+
+.report-message {
+
+
+    max-width:600px;
+
+    margin:0 auto 25px;
+
+
+    padding:15px;
+
+
+    text-align:center;
+
+
+    background:white;
+
+
+    border-radius:10px;
+
+
+    color:#2563eb;
+
+
+    font-weight:600;
+
+
+    box-shadow:
+
+    0 5px 15px rgba(0,0,0,.1);
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   REPORT FORM
+========================== */
+
+
+.report-form {
+
+
+    background:white;
+
+
+    max-width:800px;
+
+
+    margin:auto;
+
+
+    padding:30px;
+
+
+    border-radius:16px;
+
+
+    display:grid;
+
+
+    grid-template-columns:
+
+    repeat(auto-fit,minmax(250px,1fr));
+
+
+    gap:18px;
+
+
+    box-shadow:
+
+
+    0 8px 25px rgba(0,0,0,.12);
+
+
+}
+
+
+
+
+
+
+
+
+
+.report-form input,
+
+
+.report-form select,
+
+
+.report-form textarea {
+
+
+    width:100%;
+
+
+    padding:13px;
+
+
+    border:1px solid #d1d5db;
+
+
+    border-radius:8px;
+
+
+    font-size:15px;
+
+
+    outline:none;
+
+
+    box-sizing:border-box;
+
+
+}
+
+
+
+
+
+
+.report-form textarea {
+
+
+    min-height:120px;
+
+
+    resize:vertical;
+
+
+    grid-column:1/-1;
+
+
+}
+
+
+
+
+
+
+
+.report-form input:focus,
+
+
+.report-form select:focus,
+
+
+.report-form textarea:focus {
+
+
+    border-color:#2563eb;
+
+
+}
+
+
+
+
+
+
+
+
+/* ==========================
+   SUBMIT BUTTON
+========================== */
+
+
+.report-form button {
+
+
+    grid-column:1/-1;
+
+
+    padding:14px;
+
+
+    background:#2563eb;
+
+
+    color:white;
+
+
+    border:none;
+
+
+    border-radius:10px;
+
+
+    cursor:pointer;
+
+
+    font-size:17px;
+
+
+    font-weight:600;
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+
+.report-form button:hover {
+
+
+    background:#1d4ed8;
+
+
+    transform:translateY(-3px);
+
+
+}
+
+
+
+
+
+
+
+
+
+/* ==========================
+   MOBILE
+========================== */
+
+
+@media(max-width:768px){
+
+
+
+    .report-page {
+
+
+        padding:15px;
+
+
+    }
+
+
+
+
+
+    .report-page h1 {
+
+
+        font-size:24px;
+
+
+    }
+
+
+
+
+
+
+    .report-form {
+
+
+        padding:20px;
+
+
+        grid-template-columns:1fr;
+
+
+    }
+
+
+}

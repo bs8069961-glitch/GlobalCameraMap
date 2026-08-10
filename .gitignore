@@ -1,0 +1,60 @@
+﻿# GlobalCameraMap - Git Ignore
+
+# Python virtual environments
+.venv/
+.venv-1/
+.venv-2/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node / React / Vite
+node_modules/
+dist/
+build/
+.vite/
+
+# Logs
+*.log
+logs/
+
+# Database local files
+*.sqlite
+*.sqlite3
+
+# Python testing / cache
+.pytest_cache/
+.mypy_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Generated pipeline data
+data/raw/
+data/cleaned/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Local database backups
+*.dump
+*.bak
+backup_before_himachal.sql
+
+# Backend environment file
+backend.env

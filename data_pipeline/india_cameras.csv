@@ -1,0 +1,9 @@
+latitude,longitude,country,state,city,road_name,camera_type,enforcement_type,speed_limit,status,verification_status,source
+30.7333,76.7794,India,Chandigarh,Chandigarh,Sector 17,Speed Camera,Speed Enforcement,50,active,pending,Demo Dataset
+28.6139,77.2090,India,Delhi,New Delhi,Connaught Place,Red Light Camera,Red Light Enforcement,,active,pending,Demo Dataset
+19.0760,72.8777,India,Maharashtra,Mumbai,Marine Drive,Speed Camera,Speed Enforcement,50,active,pending,Demo Dataset
+12.9716,77.5946,India,Karnataka,Bengaluru,MG Road,Red Light Camera,Red Light Enforcement,,active,pending,Demo Dataset
+17.3850,78.4867,India,Telangana,Hyderabad,Hitech City Road,Speed Camera,Speed Enforcement,60,active,pending,Demo Dataset
+13.0827,80.2707,India,Tamil Nadu,Chennai,Anna Salai,Speed Camera,Speed Enforcement,50,active,pending,Demo Dataset
+22.5726,88.3639,India,West Bengal,Kolkata,Park Street,Red Light Camera,Red Light Enforcement,,active,pending,Demo Dataset
+21.1702,72.8311,India,Gujarat,Surat,Ring Road,Speed Camera,Speed Enforcement,50,active,pending,Demo Dataset
