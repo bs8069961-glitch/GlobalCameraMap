@@ -1,0 +1,21 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: global_camera_backend
+    restart: unless-stopped
+
+    environment:
+      DB_HOST: host.docker.internal
+      DB_PORT: 5432
+      DB_NAME: global_camera
+      DB_USER: camera_admin
+DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8000:8000"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
