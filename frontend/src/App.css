@@ -1,10 +1,14 @@
 /* ============================================================
    GLOBAL CAMERA MAP
-============================================================ */
+   APPLICATION SHELL   ============================================================ */
+
+
+/* ============================================================
+   ROOT
+   ============================================================ */
 
 :root {
   font-family:
-    Inter,
     -apple-system,
     BlinkMacSystemFont,
     "SF Pro Display",
@@ -15,51 +19,122 @@
     Arial,
     sans-serif;
 
-  color: #0f172a;
-  background: #f8fafc;
+  color: #111827;
+  background: #f5f5f7;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --app-header-height: 72px;
+
+  --apple-blue: #007aff;
+  --apple-blue-dark: #0066d6;
+
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-glass: rgba(255, 255, 255, 0.86);
+
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.13);
+
+  --shadow-small:
+    0 2px 8px rgba(15, 23, 42, 0.08);
+
+  --shadow-medium:
+    0 8px 28px rgba(15, 23, 42, 0.10);
+
+  --shadow-large:
+    0 18px 50px rgba(15, 23, 42, 0.14);
+
+  --radius-small: 10px;
+  --radius-medium: 14px;
+  --radius-large: 18px;
 }
 
 
 /* ============================================================
-   RESET
+   GLOBAL RESET
    ============================================================ */
 
 * {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
+
+html {
+  width: 100%;
+  height: 100%;
+
+  margin: 0;
+  padding: 0;
+
+  background: #f5f5f7;
+}
+
+
+body {
   width: 100%;
   min-width: 320px;
   min-height: 100%;
+
   margin: 0;
   padding: 0;
+
+  background: #f5f5f7;
+  color: var(--text-primary);
+
+  overflow-x: hidden;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    "SF Pro Text",
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
 }
 
-html {
-  height: 100%;
-  background: #f8fafc;
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-body {
-  min-height: 100vh;
-  background: #f8fafc;
+
+button {
+  border: 0;
+}
+
+
+a {
+  color: inherit;
+}
+
+
+img {
+  max-width: 100%;
+  display: block;
 }
 
 
 /* ============================================================
-   LINKS
+   VITE ROOT
    ============================================================ */
 
-a {
-  color: inherit;
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
 
 
@@ -70,9 +145,18 @@ a {
 .app-shell {
   width: 100%;
   min-height: 100vh;
+
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+
+  background:
+    linear-gradient(
+      180deg,
+      #f8fafc 0%,
+      #f5f5f7 100%
+    );
+
+  overflow-x: hidden;
 }
 
 
@@ -83,31 +167,32 @@ a {
 .app-header {
   position: sticky;
   top: 0;
+
   z-index: 5000;
 
   width: 100%;
-  min-height: 76px;
+  min-height: var(--app-header-height);
 
   display: flex;
   align-items: center;
+
+  gap: 22px;
 
   padding:
     10px
     22px;
 
-  gap: 22px;
-
   background:
-    rgba(255, 255, 255, 0.94);
+    rgba(255, 255, 255, 0.88);
 
   border-bottom:
-    1px solid rgba(148, 163, 184, 0.22);
+    1px solid rgba(15, 23, 42, 0.08);
+
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 
   box-shadow:
-    0 4px 20px rgba(15, 23, 42, 0.05);
-
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+    0 1px 8px rgba(15, 23, 42, 0.04);
 }
 
 
@@ -118,74 +203,82 @@ a {
 .app-brand {
   flex: 0 0 auto;
 
-  display: flex;
+  display: inline-flex;
   align-items: center;
 
   gap: 11px;
 
-  color: #0f172a;
+  min-width: 250px;
+
+  color: inherit;
   text-decoration: none;
 
-  min-width: 235px;
+  user-select: none;
 }
 
+
 .brand-icon {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
+  flex: 0 0 42px;
+
   border-radius: 13px;
 
   background:
     linear-gradient(
-      135deg,
-      #eff6ff,
-      #dbeafe
+      145deg,
+      #007aff,
+      #5ac8fa
     );
 
-  border:
-    1px solid #bfdbfe;
+  color: #ffffff;
 
   font-size: 23px;
+  line-height: 1;
 
   box-shadow:
-    0 5px 15px rgba(37, 99, 235, 0.10);
+    0 5px 14px rgba(0, 122, 255, 0.24);
 }
+
 
 .brand-text {
   min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
 }
 
+
 .brand-title {
-  color: #0f172a;
+  font-size: 17px;
+  line-height: 1.15;
 
-  font-size: 16px;
-  line-height: 1.2;
+  font-weight: 700;
 
-  font-weight: 800;
+  letter-spacing: -0.25px;
 
-  letter-spacing: -0.02em;
+  color: #111827;
 
   white-space: nowrap;
 }
 
+
 .brand-subtitle {
-  margin-top: 3px;
-
-  color: #64748b;
-
-  font-size: 10px;
-
+  font-size: 11px;
   line-height: 1.2;
 
-  font-weight: 700;
+  font-weight: 500;
 
-  letter-spacing: 0.08em;
+  color: #6b7280;
 
-  text-transform: uppercase;
+  letter-spacing: 0.15px;
 
   white-space: nowrap;
 }
@@ -198,24 +291,26 @@ a {
 .main-navigation {
   flex: 1 1 auto;
 
+  min-width: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
 
   gap: 4px;
-
-  min-width: 0;
 }
+
 
 .nav-item {
   position: relative;
 
   display: inline-flex;
   align-items: center;
+  justify-content: center;
 
   gap: 7px;
 
-  min-height: 42px;
+  min-height: 40px;
 
   padding:
     8px
@@ -223,38 +318,44 @@ a {
 
   border-radius: 11px;
 
-  color: #64748b;
+  color: #4b5563;
 
   text-decoration: none;
 
   font-size: 13px;
-
-  font-weight: 700;
+  font-weight: 600;
 
   white-space: nowrap;
 
   transition:
-    color 0.16s ease,
-    background 0.16s ease,
-    transform 0.16s ease;
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
+
 
 .nav-item:hover {
-  color: #0f172a;
-
-  background: #f1f5f9;
+  background: rgba(0, 122, 255, 0.07);
+  color: #007aff;
 }
 
-.nav-item.active {
-  color: #1d4ed8;
-
-  background:
-    #eff6ff;
-}
 
 .nav-item:active {
   transform: scale(0.98);
 }
+
+
+.nav-item.active {
+  color: #007aff;
+
+  background:
+    rgba(0, 122, 255, 0.10);
+
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 122, 255, 0.08);
+}
+
 
 .nav-icon {
   display: inline-flex;
@@ -262,30 +363,54 @@ a {
   align-items: center;
   justify-content: center;
 
-  width: 19px;
+  width: 20px;
+  height: 20px;
 
-  font-size: 15px;
+  font-size: 16px;
+
+  line-height: 1;
 }
 
+
+.nav-label {
+  line-height: 1;
+}
+
+
+/* ============================================================
+   NAVIGATION BADGE
+   ============================================================ */
+
 .nav-badge {
-  min-width: 20px;
-  height: 20px;
+  min-width: 19px;
+  height: 19px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  padding: 0 6px;
+  padding:
+    0
+    5px;
 
   border-radius: 999px;
 
+  background: #ff3b30;
+
   color: #ffffff;
 
-  background: #2563eb;
-
   font-size: 10px;
+  font-weight: 700;
 
-  font-weight: 800;
+  line-height: 1;
+
+  box-shadow:
+    0 2px 5px rgba(255, 59, 48, 0.25);
+}
+
+
+.nav-item.active .nav-badge {
+  background: #ff3b30;
 }
 
 
@@ -301,38 +426,62 @@ a {
 
   gap: 7px;
 
-  min-height: 38px;
+  min-height: 34px;
 
   padding:
     7px
     11px;
 
-  border:
-    1px solid #dcfce7;
-
   border-radius: 999px;
 
-  background: #f0fdf4;
+  background:
+    rgba(52, 199, 89, 0.09);
 
-  color: #166534;
+  border:
+    1px solid rgba(52, 199, 89, 0.14);
+
+  color: #16803c;
 
   font-size: 12px;
-
-  font-weight: 800;
+  font-weight: 650;
 
   white-space: nowrap;
 }
+
 
 .api-dot {
   width: 8px;
   height: 8px;
 
+  flex: 0 0 8px;
+
   border-radius: 50%;
 
-  background: #22c55e;
+  background: #34c759;
 
   box-shadow:
-    0 0 0 4px rgba(34, 197, 94, 0.12);
+    0 0 0 3px rgba(52, 199, 89, 0.12);
+
+  animation:
+    api-pulse 2.2s ease-in-out infinite;
+}
+
+
+@keyframes api-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+
+.api-status-text {
+  line-height: 1;
 }
 
 
@@ -343,796 +492,721 @@ a {
 .app-content {
   position: relative;
 
-  flex: 1 1 auto;
-
   width: 100%;
 
-  min-height: calc(100vh - 76px);
+  flex: 1 1 auto;
+
+  min-height:
+    calc(100vh - var(--app-header-height));
+
+  background:
+    #f5f5f7;
 
   overflow-x: hidden;
-
-  background: #f8fafc;
 }
 
 
 /* ============================================================
-   CAMERA DETAILS
+   COMMON PAGE CONTAINER
    ============================================================ */
 
-.camera-details-page {
-  min-height: 100%;
+.page-container {
+  width: 100%;
+  max-width: 1440px;
 
-  padding: 28px;
+  margin: 0 auto;
 
-  background:
-    linear-gradient(
-      180deg,
-      #f8fafc 0%,
-      #f1f5f9 100%
+  padding:
+    28px;
+
+  animation:
+    page-enter 220ms ease-out;
+}
+
+
+@keyframes page-enter {
+
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ============================================================
+   COMMON CARD
+   ============================================================ */
+
+.card {
+  background: var(--surface);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: var(--radius-large);
+
+  box-shadow: var(--shadow-small);
+}
+
+
+/* ============================================================
+   DASHBOARD SUPPORT
+   ============================================================ */
+
+.dashboard-container {
+  width: 100%;
+  max-width: 1440px;
+
+  margin: 0 auto;
+
+  padding:
+    28px;
+}
+
+
+.dashboard-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(220px, 1fr)
     );
+
+  gap: 16px;
+}
+
+
+.dashboard-card {
+  position: relative;
+
+  min-height: 145px;
+
+  padding: 20px;
+
+  background: #ffffff;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 4px 18px rgba(15, 23, 42, 0.06);
+
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.10);
+}
+
+
+/* ============================================================
+   HEADINGS
+   ============================================================ */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top: 0;
+
+  color: #111827;
+
+  letter-spacing: -0.25px;
+}
+
+
+h1 {
+  font-size: 32px;
+  line-height: 1.15;
+}
+
+
+h2 {
+  font-size: 25px;
+  line-height: 1.2;
+}
+
+
+h3 {
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.app-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  min-height: 40px;
+
+  padding:
+    9px
+    15px;
+
+  border-radius: 11px;
+
+  background: #007aff;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 4px 12px rgba(0, 122, 255, 0.18);
+
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+
+.app-button:hover {
+  background: #006fe6;
+
+  box-shadow:
+    0 7px 18px rgba(0, 122, 255, 0.23);
+}
+
+
+.app-button:active {
+  transform: scale(0.98);
+}
+
+
+.app-button:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+
+  box-shadow: none;
+}
+
+
+/* ============================================================
+   SECONDARY BUTTON
+   ============================================================ */
+
+.app-button-secondary {
+  background: #ffffff;
+
+  color: #374151;
+
+  border:
+    1px solid #d1d5db;
+
+  box-shadow:
+    0 2px 7px rgba(15, 23, 42, 0.06);
+}
+
+
+.app-button-secondary:hover {
+  background: #f9fafb;
 
   color: #111827;
 }
 
 
-/* CAMERA DETAILS HEADER */
+/* ============================================================
+   INPUTS
+   ============================================================ */
 
-.camera-details-header {
-  max-width: 1400px;
-
-  margin:
-    0 auto
-    24px;
-
-  display: flex;
-
-  justify-content: space-between;
-  align-items: flex-end;
-
-  gap: 24px;
-}
-
-.camera-details-header-left {
-  min-width: 0;
-}
-
-.camera-details-back {
-  display: inline-flex;
-
-  align-items: center;
-
-  gap: 8px;
-
-  margin-bottom: 18px;
-
-  color: #475569;
-
-  text-decoration: none;
-
-  font-size: 14px;
-
-  font-weight: 700;
-}
-
-.camera-details-back:hover {
-  color: #2563eb;
-}
-
-.camera-details-title-area {
-  display: flex;
-
-  align-items: center;
-
-  gap: 16px;
-}
-
-.camera-details-icon {
-  width: 64px;
-  height: 64px;
-
-  flex: 0 0 64px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 18px;
+input,
+select,
+textarea {
+  color: #111827;
 
   background: #ffffff;
 
   border:
-    1px solid #e2e8f0;
+    1px solid #d1d5db;
+
+  border-radius: 10px;
+
+  outline: none;
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #007aff;
 
   box-shadow:
-    0 8px 24px rgba(15, 23, 42, 0.08);
-
-  font-size: 32px;
+    0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
-.camera-details-eyebrow {
-  margin-bottom: 5px;
 
-  color: #64748b;
-
-  font-size: 11px;
-
-  font-weight: 800;
-
-  letter-spacing: 0.12em;
-}
-
-.camera-details-title-area h1 {
-  margin: 0;
-
-  color: #0f172a;
-
-  font-size: 30px;
-
-  line-height: 1.1;
-
-  letter-spacing: -0.03em;
-}
-
-.camera-details-id {
-  margin-top: 7px;
-
-  color: #64748b;
-
-  font-size: 13px;
-}
-
-.camera-details-header-status {
-  display: flex;
-
-  flex-wrap: wrap;
-
-  justify-content: flex-end;
-
-  gap: 8px;
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
 }
 
 
 /* ============================================================
-   CAMERA DETAILS BADGES
+   TABLE SUPPORT
    ============================================================ */
 
-.camera-details-badge {
-  display: inline-flex;
+table {
+  width: 100%;
 
-  align-items: center;
+  border-collapse: separate;
+  border-spacing: 0;
 
-  gap: 6px;
+  overflow: hidden;
 
-  width: fit-content;
-
-  padding:
-    6px
-    10px;
-
-  border-radius: 999px;
-
-  font-size: 12px;
-
-  font-weight: 800;
-
-  white-space: nowrap;
-}
-
-.camera-details-status-active {
-  color: #166534;
-  background: #dcfce7;
-}
-
-.camera-details-status-inactive {
-  color: #991b1b;
-  background: #fee2e2;
-}
-
-.camera-details-status-unknown {
-  color: #92400e;
-  background: #fef3c7;
-}
-
-.camera-details-verification-verified {
-  color: #166534;
-  background: #dcfce7;
-}
-
-.camera-details-verification-approved {
-  color: #1e40af;
-  background: #dbeafe;
-}
-
-.camera-details-verification-pending {
-  color: #92400e;
-  background: #fef3c7;
-}
-
-.camera-details-verification-rejected {
-  color: #991b1b;
-  background: #fee2e2;
-}
-
-
-/* ============================================================
-   CAMERA DETAILS LAYOUT
-   ============================================================ */
-
-.camera-details-layout {
-  max-width: 1400px;
-
-  margin: 0 auto;
-
-  display: grid;
-
-  grid-template-columns:
-    minmax(0, 1fr)
-    360px;
-
-  gap: 22px;
-
-  align-items: start;
-}
-
-.camera-details-main {
-  min-width: 0;
-
-  display: grid;
-
-  gap: 22px;
-}
-
-.camera-details-sidebar {
-  min-width: 0;
-
-  display: grid;
-
-  gap: 22px;
-}
-
-
-/* ============================================================
-   CAMERA DETAILS CARDS
-   ============================================================ */
-
-.camera-details-card {
-  padding: 24px;
-
-  background:
-    rgba(255, 255, 255, 0.94);
+  background: #ffffff;
 
   border:
-    1px solid #e2e8f0;
+    1px solid var(--border);
 
-  border-radius: 20px;
-
-  box-shadow:
-    0 10px 30px rgba(15, 23, 42, 0.06);
+  border-radius: 14px;
 }
 
-.camera-details-card-header {
-  display: flex;
 
-  align-items: flex-start;
-
-  justify-content: space-between;
-
-  gap: 15px;
-
-  margin-bottom: 20px;
-}
-
-.camera-details-card-kicker {
-  margin-bottom: 5px;
-
-  color: #64748b;
-
-  font-size: 10px;
-
-  font-weight: 900;
-
-  letter-spacing: 0.12em;
-}
-
-.camera-details-card h2 {
-  margin: 0;
-
-  color: #0f172a;
-
-  font-size: 19px;
-
-  letter-spacing: -0.02em;
-}
-
-.camera-details-card-symbol {
-  width: 40px;
-  height: 40px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 12px;
+th {
+  padding:
+    12px
+    14px;
 
   background: #f8fafc;
 
-  font-size: 20px;
-}
+  color: #6b7280;
 
-.camera-details-divider {
-  height: 1px;
+  font-size: 11px;
 
-  margin:
-    20px 0;
+  font-weight: 700;
 
-  background: #e2e8f0;
-}
+  text-align: left;
 
+  text-transform: uppercase;
 
-/* ============================================================
-   CAMERA LOCATION
-   ============================================================ */
+  letter-spacing: 0.5px;
 
-.camera-details-location-primary {
-  color: #0f172a;
-
-  font-size: 20px;
-
-  font-weight: 800;
-}
-
-.camera-details-location-secondary {
-  margin-top: 5px;
-
-  color: #64748b;
-
-  font-size: 14px;
+  border-bottom:
+    1px solid #e5e7eb;
 }
 
 
-/* ============================================================
-   CAMERA DETAIL ROWS
-   ============================================================ */
-
-.camera-details-row {
-  display: grid;
-
-  grid-template-columns:
-    150px
-    minmax(0, 1fr);
-
-  gap: 20px;
-
+td {
   padding:
-    13px 0;
+    13px
+    14px;
+
+  color: #374151;
+
+  font-size: 13px;
 
   border-bottom:
     1px solid #f1f5f9;
 }
 
-.camera-details-row:last-child {
-  border-bottom: 0;
-}
 
-.camera-details-row-label {
-  color: #64748b;
-
-  font-size: 13px;
-
-  font-weight: 700;
-}
-
-.camera-details-row-value {
-  color: #0f172a;
-
-  font-size: 14px;
-
-  font-weight: 700;
-
-  word-break: break-word;
+tr:last-child td {
+  border-bottom: none;
 }
 
 
-/* ============================================================
-   COORDINATES
-   ============================================================ */
-
-.camera-details-coordinates {
-  display: grid;
-
-  grid-template-columns:
-    1fr
-    1fr;
-
-  gap: 14px;
+tbody tr {
+  transition:
+    background-color 140ms ease;
 }
 
-.camera-details-coordinate {
-  padding: 16px;
 
-  border-radius: 14px;
-
+tbody tr:hover {
   background: #f8fafc;
-
-  border:
-    1px solid #e2e8f0;
-}
-
-.camera-details-coordinate span {
-  display: block;
-
-  margin-bottom: 6px;
-
-  color: #64748b;
-
-  font-size: 12px;
-
-  font-weight: 700;
-}
-
-.camera-details-coordinate strong {
-  color: #0f172a;
-
-  font-size: 16px;
-
-  font-variant-numeric: tabular-nums;
 }
 
 
 /* ============================================================
-   MAP PREVIEW
+   BADGES
    ============================================================ */
 
-.camera-details-map-preview {
-  position: relative;
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
-  height: 190px;
+  min-height: 24px;
 
-  margin-top: 18px;
+  padding:
+    4px
+    9px;
 
-  overflow: hidden;
+  border-radius: 999px;
 
-  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 700;
+}
 
-  border:
-    1px solid #dbe4ee;
+
+.status-active {
+  color: #16803c;
 
   background:
-    linear-gradient(
-      135deg,
-      #dbeafe,
-      #ecfeff
-    );
+    rgba(52, 199, 89, 0.10);
 }
 
-.camera-details-map-preview-grid {
-  position: absolute;
+
+.status-pending {
+  color: #b45309;
+
+  background:
+    rgba(255, 149, 0, 0.11);
+}
+
+
+.status-inactive {
+  color: #c62828;
+
+  background:
+    rgba(255, 59, 48, 0.10);
+}
+
+
+.status-verified {
+  color: #16803c;
+
+  background:
+    rgba(52, 199, 89, 0.10);
+}
+
+
+.status-rejected {
+  color: #c62828;
+
+  background:
+    rgba(255, 59, 48, 0.10);
+}
+
+
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+
+* {
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    rgba(100, 116, 139, 0.35)
+    transparent;
+}
+
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+*::-webkit-scrollbar-thumb {
+  background:
+    rgba(100, 116, 139, 0.35);
+
+  border-radius: 999px;
+
+  border:
+    2px solid transparent;
+
+  background-clip: padding-box;
+}
+
+
+*::-webkit-scrollbar-thumb:hover {
+  background:
+    rgba(100, 116, 139, 0.55);
+
+  border:
+    2px solid transparent;
+
+  background-clip: padding-box;
+}
+
+
+/* ============================================================
+   MAP PAGE
+   ============================================================ */
+
+.map-page {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+}
+
+
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+
+/* ============================================================
+   LEAFLET
+   ============================================================ */
+
+.leaflet-container {
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  background: #e5e7eb;
+
+  outline: none;
+}
+
+
+.leaflet-control-zoom {
+  border: none !important;
+
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.15) !important;
+
+  border-radius: 12px !important;
+
+  overflow: hidden;
+}
+
+
+.leaflet-control-zoom a {
+  width: 38px !important;
+  height: 38px !important;
+
+  display: flex !important;
+
+  align-items: center;
+  justify-content: center;
+
+  color: #374151 !important;
+
+  background:
+    rgba(255, 255, 255, 0.92) !important;
+
+  border: none !important;
+
+  font-size: 20px !important;
+
+  transition:
+    background-color 140ms ease;
+}
+
+
+.leaflet-control-zoom a:hover {
+  background:
+    #f3f4f6 !important;
+}
+
+
+.leaflet-control-attribution {
+  background:
+    rgba(255, 255, 255, 0.82) !important;
+
+  backdrop-filter:
+    blur(8px);
+
+  -webkit-backdrop-filter:
+    blur(8px);
+
+  border-radius:
+    8px 0 0 0;
+
+  padding:
+    3px 7px !important;
+
+  font-size: 9px !important;
+}
+
+
+.leaflet-popup-content-wrapper {
+  border-radius: 14px !important;
+
+  box-shadow:
+    0 12px 35px rgba(15, 23, 42, 0.18) !important;
+}
+
+
+.leaflet-popup-tip {
+  box-shadow:
+    2px 2px 5px rgba(15, 23, 42, 0.04);
+}
+
+
+.leaflet-popup-content {
+  margin:
+    14px 16px !important;
+}
+
+
+/* ============================================================
+   CAMERA MARKERS
+   ============================================================ */
+
+.camera-marker {
+  background: transparent !important;
+
+  border: none !important;
+}
+
+
+.camera-marker > div {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+
+.camera-marker:hover > div {
+  transform: scale(1.10);
+}
+
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+.loading-screen {
+  position: fixed;
 
   inset: 0;
 
-  background-image:
-    linear-gradient(
-      rgba(255,255,255,0.55)
-      1px,
-      transparent
-      1px
-    ),
-    linear-gradient(
-      90deg,
-      rgba(255,255,255,0.55)
-      1px,
-      transparent
-      1px
-    );
-
-  background-size:
-    32px
-    32px;
-}
-
-.camera-details-map-pin {
-  position: absolute;
-
-  left: 50%;
-  top: 50%;
-
-  transform:
-    translate(-50%, -50%);
-
-  width: 58px;
-  height: 58px;
+  z-index: 9999;
 
   display: flex;
-
   align-items: center;
   justify-content: center;
 
-  border-radius: 50%;
-
-  background: #ffffff;
-
-  border:
-    4px solid #2563eb;
-
-  box-shadow:
-    0 8px 25px rgba(37, 99, 235, 0.3);
-
-  font-size: 25px;
-}
-
-.camera-details-map-preview-label {
-  position: absolute;
-
-  left: 12px;
-  bottom: 12px;
-
-  padding:
-    7px
-    10px;
-
-  border-radius: 9px;
-
   background:
-    rgba(255,255,255,0.92);
+    rgba(245, 245, 247, 0.92);
 
-  color: #334155;
+  backdrop-filter:
+    blur(18px);
 
-  font-size: 12px;
-
-  font-weight: 800;
+  -webkit-backdrop-filter:
+    blur(18px);
 }
 
 
-/* ============================================================
-   STATUS CARD
-   ============================================================ */
-
-.camera-details-status-card {
-  background:
-    linear-gradient(
-      145deg,
-      #ffffff,
-      #f8fafc
-    );
-}
-
-.camera-details-big-status {
-  margin-top: 14px;
-}
-
-.camera-details-big-status h2 {
-  margin-top: 12px;
-
-  font-size: 24px;
-}
-
-.camera-details-status-card p,
-.camera-details-card > p {
-  margin:
-    12px 0 0;
-
-  color: #64748b;
-
-  font-size: 13px;
-
-  line-height: 1.65;
-}
-
-
-/* ============================================================
-   VERIFICATION
-   ============================================================ */
-
-.camera-details-verification-large {
-  margin-top: 18px;
-}
-
-
-/* ============================================================
-   SOURCE
-   ============================================================ */
-
-.camera-details-source-link {
-  display: inline-flex;
-
-  margin-top: 16px;
-
-  color: #2563eb;
-
-  text-decoration: none;
-
-  font-size: 13px;
-
-  font-weight: 800;
-}
-
-.camera-details-source-link:hover {
-  text-decoration: underline;
-}
-
-
-/* ============================================================
-   ACTION BUTTONS
-   ============================================================ */
-
-.camera-details-actions-column {
-  display: grid;
-
-  gap: 10px;
-
-  margin-top: 16px;
-}
-
-.camera-details-primary-button,
-.camera-details-secondary-button {
-  min-height: 44px;
-
-  padding:
-    11px
-    15px;
-
-  display: inline-flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 12px;
-
-  text-decoration: none;
-
-  font-size: 13px;
-
-  font-weight: 800;
-
-  cursor: pointer;
-
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.camera-details-primary-button {
-  color: #ffffff;
-
-  background: #2563eb;
-
-  border:
-    1px solid #2563eb;
-}
-
-.camera-details-primary-button:hover {
-  background: #1d4ed8;
-
-  box-shadow:
-    0 7px 18px
-    rgba(37, 99, 235, 0.22);
-
-  transform:
-    translateY(-1px);
-}
-
-.camera-details-secondary-button {
-  color: #334155;
-
-  background: #ffffff;
-
-  border:
-    1px solid #dbe2ea;
-}
-
-.camera-details-secondary-button:hover {
-  background: #f8fafc;
-
-  transform:
-    translateY(-1px);
-}
-
-.camera-details-actions {
+.loading-card {
   display: flex;
-
-  flex-wrap: wrap;
-
-  justify-content: center;
-
-  gap: 10px;
-
-  margin-top: 22px;
-}
-
-
-/* ============================================================
-   LOADING / ERROR
-   ============================================================ */
-
-.camera-details-loading,
-.camera-details-error {
-  min-height: 55vh;
-
-  display: flex;
-
   flex-direction: column;
 
   align-items: center;
-  justify-content: center;
 
-  text-align: center;
-}
+  gap: 12px;
 
-.camera-details-loading-icon {
-  width: 70px;
-  height: 70px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  margin-bottom: 18px;
-
-  border-radius: 20px;
+  padding:
+    28px;
 
   background: #ffffff;
 
   border:
-    1px solid #e2e8f0;
+    1px solid var(--border);
 
-  box-shadow:
-    0 10px 30px
-    rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
 
-  font-size: 34px;
+  box-shadow: var(--shadow-large);
 }
 
-.camera-details-loading h2,
-.camera-details-error h2 {
-  margin: 0;
 
-  color: #0f172a;
-}
+.loading-spinner {
+  width: 28px;
+  height: 28px;
 
-.camera-details-loading p,
-.camera-details-error p {
-  max-width: 500px;
+  border:
+    3px solid #e5e7eb;
 
-  margin:
-    8px 0 0;
-
-  color: #64748b;
-
-  line-height: 1.6;
-}
-
-.camera-details-error-icon {
-  width: 60px;
-  height: 60px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  margin-bottom: 16px;
+  border-top-color:
+    #007aff;
 
   border-radius: 50%;
 
-  color: #991b1b;
+  animation:
+    spin 0.75s linear infinite;
+}
 
-  background: #fee2e2;
 
-  font-size: 28px;
+@keyframes spin {
 
-  font-weight: 900;
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 
 /* ============================================================
-   RESPONSIVE HEADER
+   ERROR
+   ============================================================ */
+
+.error-card {
+  padding:
+    14px
+    16px;
+
+  border-radius: 13px;
+
+  background:
+    rgba(255, 59, 48, 0.07);
+
+  border:
+    1px solid rgba(255, 59, 48, 0.16);
+
+  color: #b42318;
+
+  font-size: 13px;
+}
+
+
+/* ============================================================
+   RESPONSIVE TABLET
    ============================================================ */
 
 @media (max-width: 1100px) {
+
+  :root {
+    --app-header-height: 68px;
+  }
+
 
   .app-header {
     gap: 12px;
@@ -1142,69 +1216,112 @@ a {
       14px;
   }
 
+
   .app-brand {
     min-width: auto;
   }
+
+
+  .brand-title {
+    font-size: 15px;
+  }
+
 
   .brand-subtitle {
     display: none;
   }
 
-  .nav-item {
-    padding:
-      8px
-      9px;
+
+  .main-navigation {
+    justify-content: flex-start;
+
+    overflow-x: auto;
+
+    scrollbar-width: none;
   }
 
-  .nav-item span:last-child {
+
+  .main-navigation::-webkit-scrollbar {
     display: none;
   }
 
-  .nav-icon {
-    width: 22px;
-    font-size: 17px;
+
+  .nav-item {
+    padding:
+      8px
+      10px;
   }
 
+
+  .nav-label {
+    font-size: 12px;
+  }
+
+
+  .page-container,
+  .dashboard-container {
+    padding:
+      20px;
+  }
 }
 
 
 /* ============================================================
-   RESPONSIVE CAMERA DETAILS
+   RESPONSIVE MOBILE
    ============================================================ */
 
-@media (max-width: 1000px) {
+@media (max-width: 760px) {
 
-  .camera-details-layout {
-    grid-template-columns: 1fr;
+  :root {
+    --app-header-height: auto;
   }
 
-  .camera-details-sidebar {
-    grid-template-columns:
-      repeat(
-        2,
-        minmax(0, 1fr)
-      );
-  }
-
-}
-
-
-@media (max-width: 720px) {
 
   .app-header {
-    position: relative;
+    position: sticky;
 
     flex-wrap: wrap;
 
-    min-height: auto;
+    gap: 8px;
+
+    padding:
+      9px
+      10px;
   }
 
+
   .app-brand {
-    flex: 1;
+    flex: 1 1 auto;
+
+    min-width: 0;
   }
+
+
+  .brand-icon {
+    width: 37px;
+    height: 37px;
+
+    flex-basis: 37px;
+
+    border-radius: 11px;
+
+    font-size: 20px;
+  }
+
+
+  .brand-title {
+    font-size: 14px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+  }
+
 
   .main-navigation {
     order: 3;
+
+    flex-basis: 100%;
 
     width: 100%;
 
@@ -1215,101 +1332,192 @@ a {
     padding-bottom: 2px;
   }
 
-  .nav-item span:last-child {
-    display: inline;
-  }
 
   .nav-item {
     flex: 0 0 auto;
+
+    min-height: 36px;
+
+    padding:
+      7px
+      9px;
+
+    border-radius: 9px;
+
+    font-size: 11px;
   }
 
-  .api-status-text {
-    display: none;
+
+  .nav-icon {
+    width: 18px;
+    height: 18px;
+
+    font-size: 14px;
   }
+
+
+  .nav-label {
+    font-size: 11px;
+  }
+
 
   .api-status {
+    min-height: 31px;
+
+    padding:
+      6px
+      9px;
+
+    font-size: 10px;
+  }
+
+
+  .api-dot {
+    width: 7px;
+    height: 7px;
+
+    flex-basis: 7px;
+  }
+
+
+  .app-content {
+    min-height:
+      calc(100vh - 110px);
+  }
+
+
+  .page-container,
+  .dashboard-container {
+    padding:
+      14px;
+  }
+
+
+  h1 {
+    font-size: 27px;
+  }
+
+
+  h2 {
+    font-size: 22px;
+  }
+
+
+  h3 {
+    font-size: 18px;
+  }
+
+
+  .dashboard-grid {
+    grid-template-columns:
+      1fr;
+
+    gap: 12px;
+  }
+
+
+  .dashboard-card {
+    min-height: 125px;
+  }
+}
+
+
+/* ============================================================
+   SMALL MOBILE
+   ============================================================ */
+
+@media (max-width: 480px) {
+
+  .app-header {
     padding:
       8px;
   }
 
 
-  .camera-details-page {
-    padding: 18px;
+  .brand-icon {
+    width: 34px;
+    height: 34px;
+
+    flex-basis: 34px;
+
+    font-size: 18px;
   }
 
-  .camera-details-header {
-    align-items: flex-start;
 
-    flex-direction: column;
+  .brand-title {
+    font-size: 13px;
   }
 
-  .camera-details-header-status {
-    justify-content: flex-start;
+
+  .api-status-text {
+    display: none;
   }
 
-  .camera-details-title-area h1 {
-    font-size: 24px;
+
+  .api-status {
+    width: 29px;
+    height: 29px;
+
+    min-height: 29px;
+
+    padding: 0;
+
+    justify-content: center;
   }
 
-  .camera-details-sidebar {
-    grid-template-columns: 1fr;
-  }
 
-  .camera-details-card {
-    padding: 19px;
-
-    border-radius: 17px;
-  }
-
-  .camera-details-row {
-    grid-template-columns: 1fr;
-
+  .nav-item {
     gap: 5px;
+
+    padding:
+      7px
+      8px;
   }
 
-  .camera-details-coordinates {
-    grid-template-columns: 1fr;
+
+  .nav-label {
+    font-size: 10px;
   }
 
+
+  .nav-badge {
+    min-width: 17px;
+    height: 17px;
+
+    font-size: 9px;
+  }
+
+
+  .page-container,
+  .dashboard-container {
+    padding:
+      10px;
+  }
 }
 
 
-@media (max-width: 480px) {
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
 
-  .brand-title {
-    font-size: 14px;
+:focus-visible {
+  outline:
+    3px solid rgba(0, 122, 255, 0.30);
+
+  outline-offset: 2px;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+
+    transition-duration: 0.01ms !important;
   }
-
-  .brand-icon {
-    width: 39px;
-    height: 39px;
-
-    border-radius: 11px;
-
-    font-size: 20px;
-  }
-
-  .camera-details-page {
-    padding: 12px;
-  }
-
-  .camera-details-title-area {
-    align-items: flex-start;
-  }
-
-  .camera-details-icon {
-    width: 52px;
-    height: 52px;
-
-    flex-basis: 52px;
-
-    border-radius: 15px;
-
-    font-size: 25px;
-  }
-
-  .camera-details-title-area h1 {
-    font-size: 21px;
-  }
-
 }

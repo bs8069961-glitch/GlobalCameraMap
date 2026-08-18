@@ -1,33 +1,37 @@
-import React from "react";
-import {
-  NavLink,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import React, { useCallback, useEffect, useState } from "react";
+import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 
 import Dashboard from "./components/Dashboard";
 import CameraMap from "./components/CameraMap";
-import CameraDetails from "./components/CameraDetails";
 import PendingCameras from "./components/PendingCameras";
 import ReportCamera from "./components/ReportCamera";
 
 import "./App.css";
 
 
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
+// ============================================================
+// CONFIGURATION
+// ============================================================
 
-function Navigation() {
+const API_URL = "http://127.0.0.1:8000";
+
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+function Navigation({ pendingCount }) {
   return (
     <header className="app-header">
 
-      {/* BRAND */}
+      {/* ======================================================
+          BRAND
+      ====================================================== */}
 
       <NavLink
         to="/dashboard"
         className="app-brand"
+        aria-label="Global Camera Map Dashboard"
       >
         <div className="brand-icon">
           🌍
@@ -45,9 +49,14 @@ function Navigation() {
       </NavLink>
 
 
-      {/* NAVIGATION */}
+      {/* ======================================================
+          MAIN NAVIGATION
+      ====================================================== */}
 
-      <nav className="main-navigation">
+      <nav
+        className="main-navigation"
+        aria-label="Main navigation"
+      >
 
         <NavLink
           to="/dashboard"
@@ -59,7 +68,7 @@ function Navigation() {
             🚦
           </span>
 
-          <span>
+          <span className="nav-label">
             Dashboard
           </span>
         </NavLink>
@@ -75,7 +84,7 @@ function Navigation() {
             🗺️
           </span>
 
-          <span>
+          <span className="nav-label">
             Camera Map
           </span>
         </NavLink>
@@ -91,12 +100,12 @@ function Navigation() {
             ⏳
           </span>
 
-          <span>
+          <span className="nav-label">
             Pending Reports
           </span>
 
           <span className="nav-badge">
-            0
+            {pendingCount}
           </span>
         </NavLink>
 
@@ -111,7 +120,7 @@ function Navigation() {
             📢
           </span>
 
-          <span>
+          <span className="nav-label">
             Report Camera
           </span>
         </NavLink>
@@ -119,16 +128,19 @@ function Navigation() {
       </nav>
 
 
-      {/* API STATUS */}
+      {/* ======================================================
+          API STATUS
+      ====================================================== */}
 
-      <div className="api-status">
-
+      <div
+        className="api-status"
+        title="Backend API status"
+      >
         <span className="api-dot"></span>
 
         <span className="api-status-text">
           API Online
         </span>
-
       </div>
 
     </header>
@@ -136,21 +148,143 @@ function Navigation() {
 }
 
 
-/* ============================================================
-   APP
-   ============================================================ */
+// ============================================================
+// APP
+// ============================================================
 
 function App() {
+
+  const [pendingCount, setPendingCount] = useState(0);
+
+
+  // ==========================================================
+  // LOAD PENDING REPORT COUNT
+  // ==========================================================
+
+  const loadPendingCount = useCallback(async () => {
+    try {
+
+      const response = await fetch(
+        `${API_URL}/api/reports/pending`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Pending reports API returned HTTP ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+
+
+      // Backend normally returns:
+      //
+      // {
+      //   count: 2,
+      //   reports: [...]
+      // }
+
+      if (
+        typeof data?.count === "number"
+      ) {
+        setPendingCount(data.count);
+        return;
+      }
+
+
+      // Fallback if API returns an array.
+
+      if (Array.isArray(data)) {
+        setPendingCount(data.length);
+        return;
+      }
+
+
+      // Fallback if reports exists.
+
+      if (Array.isArray(data?.reports)) {
+        setPendingCount(
+          data.reports.length
+        );
+        return;
+      }
+
+
+      setPendingCount(0);
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load pending report count:",
+        error
+      );
+
+      // Do not break the application
+      // if this endpoint is temporarily unavailable.
+
+      setPendingCount(0);
+    }
+  }, []);
+
+
+  // ==========================================================
+  // INITIAL LOAD
+  // ==========================================================
+
+  useEffect(() => {
+
+    loadPendingCount();
+
+  }, [loadPendingCount]);
+
+
+  // ==========================================================
+  // REFRESH PENDING COUNT
+  // ==========================================================
+
+  useEffect(() => {
+
+    const interval = setInterval(() => {
+      loadPendingCount();
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+    };
+
+  }, [loadPendingCount]);
+
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
   return (
     <div className="app-shell">
 
-      <Navigation />
+      {/* ====================================================
+          HEADER
+      ===================================================== */}
+
+      <Navigation
+        pendingCount={pendingCount}
+      />
+
+
+      {/* ====================================================
+          APPLICATION CONTENT
+      ===================================================== */}
 
       <main className="app-content">
 
         <Routes>
 
-          {/* DASHBOARD */}
+          {/* ==================================================
+              ROOT
+          ================================================== */}
 
           <Route
             path="/"
@@ -162,6 +296,11 @@ function App() {
             }
           />
 
+
+          {/* ==================================================
+              DASHBOARD
+          ================================================== */}
+
           <Route
             path="/dashboard"
             element={
@@ -170,7 +309,9 @@ function App() {
           />
 
 
-          {/* CAMERA MAP */}
+          {/* ==================================================
+              CAMERA MAP
+          ================================================== */}
 
           <Route
             path="/map"
@@ -180,17 +321,9 @@ function App() {
           />
 
 
-          {/* CAMERA DETAILS */}
-
-          <Route
-            path="/camera/:cameraId"
-            element={
-              <CameraDetails />
-            }
-          />
-
-
-          {/* PENDING REPORTS */}
+          {/* ==================================================
+              PENDING REPORTS
+          ================================================== */}
 
           <Route
             path="/pending"
@@ -200,7 +333,9 @@ function App() {
           />
 
 
-          {/* REPORT CAMERA */}
+          {/* ==================================================
+              REPORT CAMERA
+          ================================================== */}
 
           <Route
             path="/report"
@@ -210,7 +345,9 @@ function App() {
           />
 
 
-          {/* FALLBACK */}
+          {/* ==================================================
+              UNKNOWN ROUTE
+          ================================================== */}
 
           <Route
             path="*"
@@ -230,5 +367,9 @@ function App() {
   );
 }
 
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export default App;
