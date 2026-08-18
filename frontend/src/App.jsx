@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Routes, Route } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 
 import Dashboard from "./components/Dashboard";
 import CameraMap from "./components/CameraMap";
@@ -9,14 +9,23 @@ import ReportCamera from "./components/ReportCamera";
 import "./App.css";
 
 
+// ============================================================
+// NAVIGATION
+// ============================================================
+
 function Navigation() {
   return (
     <header className="app-header">
 
-      {/* BRAND */}
+      {/* ======================================================
+          BRAND
+      ====================================================== */}
 
-      <div className="app-brand">
-
+      <NavLink
+        to="/dashboard"
+        className="app-brand"
+        aria-label="Global Camera Map Dashboard"
+      >
         <div className="brand-icon">
           🌍
         </div>
@@ -30,13 +39,17 @@ function Navigation() {
             India Traffic Intelligence
           </div>
         </div>
+      </NavLink>
 
-      </div>
 
+      {/* ======================================================
+          MAIN NAVIGATION
+      ====================================================== */}
 
-      {/* NAVIGATION */}
-
-      <nav className="main-navigation">
+      <nav
+        className="main-navigation"
+        aria-label="Main navigation"
+      >
 
         <NavLink
           to="/dashboard"
@@ -44,8 +57,13 @@ function Navigation() {
             `nav-item ${isActive ? "active" : ""}`
           }
         >
-          <span className="nav-icon">🚦</span>
-          <span>Dashboard</span>
+          <span className="nav-icon" aria-hidden="true">
+            🚦
+          </span>
+
+          <span className="nav-label">
+            Dashboard
+          </span>
         </NavLink>
 
 
@@ -55,8 +73,13 @@ function Navigation() {
             `nav-item ${isActive ? "active" : ""}`
           }
         >
-          <span className="nav-icon">🗺️</span>
-          <span>Camera Map</span>
+          <span className="nav-icon" aria-hidden="true">
+            🗺️
+          </span>
+
+          <span className="nav-label">
+            Camera Map
+          </span>
         </NavLink>
 
 
@@ -66,8 +89,13 @@ function Navigation() {
             `nav-item ${isActive ? "active" : ""}`
           }
         >
-          <span className="nav-icon">⏳</span>
-          <span>Pending Reports</span>
+          <span className="nav-icon" aria-hidden="true">
+            ⏳
+          </span>
+
+          <span className="nav-label">
+            Pending Reports
+          </span>
 
           <span className="nav-badge">
             0
@@ -81,29 +109,114 @@ function Navigation() {
             `nav-item report-nav ${isActive ? "active" : ""}`
           }
         >
-          <span className="nav-icon">📢</span>
-          <span>Report Camera</span>
+          <span className="nav-icon" aria-hidden="true">
+            📢
+          </span>
+
+          <span className="nav-label">
+            Report Camera
+          </span>
         </NavLink>
 
       </nav>
 
 
-      {/* API STATUS */}
+      {/* ======================================================
+          API STATUS
+      ====================================================== */}
 
-      <div className="api-status">
-
-        <span className="api-dot"></span>
+      <div
+        className="api-status"
+        title="Backend API connection"
+      >
+        <span
+          className="api-dot"
+          aria-hidden="true"
+        />
 
         <span className="api-status-text">
           API Online
         </span>
-
       </div>
 
     </header>
   );
 }
 
+
+// ============================================================
+// APP ROUTES
+// ============================================================
+
+function AppRoutes() {
+  return (
+    <Routes>
+
+      {/* Default route */}
+
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to="/dashboard"
+            replace
+          />
+        }
+      />
+
+
+      {/* Dashboard */}
+
+      <Route
+        path="/dashboard"
+        element={<Dashboard />}
+      />
+
+
+      {/* Camera Map */}
+
+      <Route
+        path="/map"
+        element={<CameraMap />}
+      />
+
+
+      {/* Pending Reports */}
+
+      <Route
+        path="/pending"
+        element={<PendingCameras />}
+      />
+
+
+      {/* Report Camera */}
+
+      <Route
+        path="/report"
+        element={<ReportCamera />}
+      />
+
+
+      {/* Unknown route */}
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/dashboard"
+            replace
+          />
+        }
+      />
+
+    </Routes>
+  );
+}
+
+
+// ============================================================
+// APPLICATION
+// ============================================================
 
 function App() {
   return (
@@ -112,41 +225,16 @@ function App() {
       <Navigation />
 
       <main className="app-content">
-
-        <Routes>
-
-          <Route
-            path="/"
-            element={<Dashboard />}
-          />
-
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
-
-          <Route
-            path="/map"
-            element={<CameraMap />}
-          />
-
-          <Route
-            path="/pending"
-            element={<PendingCameras />}
-          />
-
-          <Route
-            path="/report"
-            element={<ReportCamera />}
-          />
-
-        </Routes>
-
+        <AppRoutes />
       </main>
 
     </div>
   );
 }
 
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export default App;

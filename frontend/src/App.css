@@ -1,13 +1,676 @@
-* {
-  box-sizing: border-box;
+/* ============================================================
+   GLOBAL CAMERA MAP
+   APPLICATION SHELL
+   ============================================================ */
+
+/* ============================================================
+   ROOT
+   ============================================================ */
+
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
 
-html,
-body,
-#root {
-  margin: 0;
-  padding: 0;
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+
+.app-shell {
   width: 100%;
-  height: 100%;
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  background:
+    linear-gradient(
+      180deg,
+      #f8fafc 0%,
+      #f1f5f9 100%
+    );
+
+  color: #0f172a;
+
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.app-header {
+  position: sticky;
+  top: 0;
+
+  z-index: 5000;
+
+  width: 100%;
+  min-height: 76px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 24px;
+
+  gap: 28px;
+
+  background:
+    rgba(255, 255, 255, 0.92);
+
+  border-bottom:
+    1px solid rgba(148, 163, 184, 0.25);
+
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.05),
+    0 8px 24px rgba(15, 23, 42, 0.04);
+
+  backdrop-filter:
+    blur(20px);
+
+  -webkit-backdrop-filter:
+    blur(20px);
+}
+
+/* ============================================================
+   BRAND
+   ============================================================ */
+
+.app-brand {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  min-width: 250px;
+
+  user-select: none;
+}
+
+.brand-mark {
+  width: 44px;
+  height: 44px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 13px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #e2e8f0
+    );
+
+  border:
+    1px solid rgba(148, 163, 184, 0.35);
+
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.10);
+
+  font-size: 23px;
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.brand-title {
+  font-size: 16px;
+
+  font-weight: 800;
+
+  letter-spacing: -0.025em;
+
+  color: #0f172a;
+
+  white-space: nowrap;
+}
+
+.brand-subtitle {
+  margin-top: 2px;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  color: #64748b;
+
+  letter-spacing: 0.01em;
+
+  white-space: nowrap;
+}
+
+/* ============================================================
+   MAIN NAVIGATION
+   ============================================================ */
+
+.main-navigation {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 5px;
+}
+
+/* ============================================================
+   NAVIGATION ITEM
+   ============================================================ */
+
+.app-nav-item {
+  position: relative;
+
+  min-height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 0 14px;
+
+  border-radius: 11px;
+
+  color: #475569;
+
+  text-decoration: none;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  white-space: nowrap;
+
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.app-nav-item:hover {
+  color: #0f172a;
+
+  background:
+    rgba(241, 245, 249, 0.9);
+}
+
+.app-nav-item:active {
+  transform: scale(0.97);
+}
+
+.app-nav-item.active {
+  color: #1d4ed8;
+
+  background:
+    #eff6ff;
+
+  box-shadow:
+    inset 0 0 0 1px
+    rgba(59, 130, 246, 0.10);
+}
+
+/* ============================================================
+   NAV ICON
+   ============================================================ */
+
+.app-nav-icon {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  font-size: 16px;
+
+  line-height: 1;
+}
+
+/* ============================================================
+   NAV LABEL
+   ============================================================ */
+
+.app-nav-label {
+  line-height: 1;
+}
+
+/* ============================================================
+   NAV BADGE
+   ============================================================ */
+
+.app-nav-badge {
+  min-width: 20px;
+  height: 20px;
+
+  padding: 0 6px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+
+  background: #f1f5f9;
+
+  color: #64748b;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  line-height: 1;
+}
+
+/* ============================================================
+   ACTIVE BADGE
+   ============================================================ */
+
+.app-nav-item.active .app-nav-badge {
+  background: #dbeafe;
+
+  color: #1d4ed8;
+}
+
+/* ============================================================
+   API STATUS
+   ============================================================ */
+
+.api-status {
+  flex-shrink: 0;
+
+  min-height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 12px;
+
+  border-radius: 999px;
+
+  background:
+    #f0fdf4;
+
+  border:
+    1px solid #bbf7d0;
+
+  color: #166534;
+
+  font-size: 12px;
+
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+.api-status-dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 50%;
+
+  background: #22c55e;
+
+  box-shadow:
+    0 0 0 4px
+    rgba(34, 197, 94, 0.12);
+
+  animation:
+    apiPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes apiPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.65;
+    transform: scale(0.88);
+  }
+
+}
+
+/* ============================================================
+   MOBILE MENU BUTTON
+   ============================================================ */
+
+.mobile-menu-button {
+  display: none;
+
+  width: 42px;
+  height: 42px;
+
+  flex-shrink: 0;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-direction: column;
+
+  gap: 5px;
+
+  padding: 0;
+
+  border: 0;
+
+  border-radius: 10px;
+
+  background: #f1f5f9;
+
+  cursor: pointer;
+}
+
+.mobile-menu-button span {
+  display: block;
+
+  width: 19px;
+  height: 2px;
+
+  border-radius: 999px;
+
+  background: #334155;
+}
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+
+.app-content {
+  position: relative;
+
+  flex: 1;
+
+  width: 100%;
+
+  min-height: 0;
+
+  overflow: visible;
+}
+
+/* ============================================================
+   PAGE DEFAULT
+   ============================================================ */
+
+.app-content > * {
+  width: 100%;
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+
+* {
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    #cbd5e1
+    transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ============================================================
+   SELECTION
+   ============================================================ */
+
+::selection {
+  background: #bfdbfe;
+
+  color: #0f172a;
+}
+
+/* ============================================================
+   FOCUS
+   ============================================================ */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline:
+    3px solid
+    rgba(59, 130, 246, 0.30);
+
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   TABLET
+   ============================================================ */
+
+@media (max-width: 1150px) {
+
+  .app-header {
+    padding: 0 18px;
+
+    gap: 16px;
+  }
+
+  .app-brand {
+    min-width: 220px;
+  }
+
+  .brand-title {
+    font-size: 15px;
+  }
+
+  .app-nav-item {
+    padding: 0 10px;
+
+    font-size: 12px;
+  }
+
+  .app-nav-icon {
+    font-size: 15px;
+  }
+
+  .api-status {
+    padding: 0 10px;
+  }
+
+}
+
+/* ============================================================
+   MOBILE / TABLET NAVIGATION
+   ============================================================ */
+
+@media (max-width: 900px) {
+
+  .app-header {
+    position: sticky;
+
+    min-height: 68px;
+
+    padding:
+      0 14px;
+
+    gap: 10px;
+  }
+
+  .app-brand {
+    flex: 1;
+
+    min-width: 0;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 11px;
+
+    font-size: 21px;
+  }
+
+  .brand-title {
+    font-size: 14px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+  }
+
+  .brand-subtitle {
+    font-size: 10px;
+  }
+
+  .api-status {
+    display: none;
+  }
+
+  .mobile-menu-button {
+    display: flex;
+  }
+
+  .main-navigation {
+    position: absolute;
+
+    top: calc(100% + 1px);
+
+    left: 10px;
+    right: 10px;
+
+    display: none;
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    justify-content: flex-start;
+
+    gap: 4px;
+
+    padding: 8px;
+
+    background:
+      rgba(255, 255, 255, 0.98);
+
+    border:
+      1px solid
+      rgba(148, 163, 184, 0.25);
+
+    border-radius: 14px;
+
+    box-shadow:
+      0 15px 40px
+      rgba(15, 23, 42, 0.15);
+
+    backdrop-filter:
+      blur(20px);
+
+    -webkit-backdrop-filter:
+      blur(20px);
+  }
+
+  .main-navigation.mobile-open {
+    display: flex;
+  }
+
+  .app-nav-item {
+    width: 100%;
+
+    min-height: 46px;
+
+    justify-content: flex-start;
+
+    padding: 0 13px;
+
+    border-radius: 10px;
+  }
+
+  .app-nav-icon {
+    width: 24px;
+  }
+
+}
+
+/* ============================================================
+   SMALL MOBILE
+   ============================================================ */
+
+@media (max-width: 520px) {
+
+  .app-header {
+    min-height: 62px;
+
+    padding:
+      0 10px;
+  }
+
+  .brand-mark {
+    width: 37px;
+    height: 37px;
+
+    font-size: 19px;
+  }
+
+  .brand-title {
+    font-size: 13px;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .mobile-menu-button {
+    width: 38px;
+    height: 38px;
+  }
+
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+
+    animation-duration:
+      0.01ms !important;
+
+    animation-iteration-count:
+      1 !important;
+
+    transition-duration:
+      0.01ms !important;
+  }
+
 }

@@ -7,11 +7,12 @@ import React, {
 
 import {
   MapContainer,
-  TileLayer,
   Marker,
   Popup,
   Polyline,
+  TileLayer,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -20,61 +21,246 @@ import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
 
+
+// ============================================================
+// CONFIGURATION
+// ============================================================
+
 const API_URL = "http://127.0.0.1:8000";
 
+const INDIA_CENTER = [22.9734, 78.6569];
+
+const INDIA_BOUNDS = [
+  [6.5, 68.0],
+  [35.8, 97.5],
+];
+
+
 // ============================================================
-// CAMERA ICON
+// GLOBAL MAP STYLE
 // ============================================================
 
-function createCameraIcon(type) {
-  const cameraType = String(type || "").toLowerCase();
+const styles = {
+  shell: {
+    position: "relative",
+    width: "100%",
+    height: "calc(100vh - 70px)",
+    minHeight: "600px",
+    overflow: "hidden",
+    background: "#e5e7eb",
+    fontFamily:
+      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  },
 
-  let emoji = "📷";
+  map: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: 1,
+  },
 
-  if (cameraType.includes("speed")) {
-    emoji = "🚗";
-  } else if (
-    cameraType.includes("red") ||
-    cameraType.includes("traffic light")
+  glass: {
+    background: "rgba(255,255,255,0.94)",
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+    border: "1px solid rgba(255,255,255,0.75)",
+    boxShadow:
+      "0 8px 30px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)",
+  },
+
+  searchPanel: {
+    position: "absolute",
+    zIndex: 1000,
+    top: 18,
+    left: 18,
+    width: "min(430px, calc(100vw - 36px))",
+  },
+
+  searchBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "11px 14px",
+    borderRadius: 16,
+  },
+
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    border: 0,
+    outline: 0,
+    background: "transparent",
+    fontSize: 15,
+    color: "#111827",
+  },
+
+  floatingPanel: {
+    position: "absolute",
+    zIndex: 1000,
+    borderRadius: 16,
+  },
+
+  filterPanel: {
+    top: 78,
+    left: 18,
+    width: "min(430px, calc(100vw - 36px))",
+    padding: 14,
+    borderRadius: 16,
+  },
+
+  statsPanel: {
+    position: "absolute",
+    zIndex: 1000,
+    top: 18,
+    right: 18,
+    width: 280,
+    padding: 16,
+    borderRadius: 18,
+  },
+
+  controlsPanel: {
+    position: "absolute",
+    zIndex: 1000,
+    right: 18,
+    bottom: 22,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+
+  controlButton: {
+    width: 44,
+    height: 44,
+    border: 0,
+    borderRadius: 13,
+    background: "rgba(255,255,255,0.95)",
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+    boxShadow:
+      "0 5px 18px rgba(0,0,0,0.15)",
+    cursor: "pointer",
+    fontSize: 18,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  bottomPanel: {
+    position: "absolute",
+    zIndex: 1000,
+    left: 18,
+    bottom: 22,
+    width: "min(390px, calc(100vw - 36px))",
+    padding: 14,
+    borderRadius: 18,
+  },
+
+  select: {
+    width: "100%",
+    padding: "9px 10px",
+    border: "1px solid #d1d5db",
+    borderRadius: 10,
+    background: "#fff",
+    color: "#111827",
+    fontSize: 13,
+    outline: "none",
+  },
+
+  smallButton: {
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    color: "#111827",
+    borderRadius: 10,
+    padding: "8px 11px",
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+};
+
+
+// ============================================================
+// CAMERA ICONS
+// ============================================================
+
+function getCameraEmoji(type) {
+  const value = String(type || "").toLowerCase();
+
+  if (
+    value.includes("speed") ||
+    value.includes("velocity")
   ) {
-    emoji = "🚦";
-  } else if (
-    cameraType.includes("anpr") ||
-    cameraType.includes("itms")
-  ) {
-    emoji = "🔎";
-  } else if (cameraType.includes("traffic")) {
-    emoji = "📹";
+    return "🚗";
   }
 
+  if (
+    value.includes("red") ||
+    value.includes("signal") ||
+    value.includes("traffic light")
+  ) {
+    return "🚦";
+  }
+
+  if (
+    value.includes("anpr") ||
+    value.includes("itms") ||
+    value.includes("number plate")
+  ) {
+    return "🔎";
+  }
+
+  if (
+    value.includes("traffic") ||
+    value.includes("surveillance")
+  ) {
+    return "📹";
+  }
+
+  return "📷";
+}
+
+
+function createCameraIcon(type, selected = false) {
+  const emoji = getCameraEmoji(type);
+
   return L.divIcon({
-    className: "camera-marker",
+    className: "global-camera-marker",
+
     html: `
       <div
         style="
-          width: 34px;
-          height: 34px;
+          width: ${selected ? 44 : 38}px;
+          height: ${selected ? 44 : 38}px;
           border-radius: 50%;
-          background: #ffffff;
-          border: 2px solid #222222;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 19px;
-          box-shadow: 0 2px 7px rgba(0,0,0,0.35);
+          background: rgba(255,255,255,0.97);
+          border: ${selected ? "3px solid #007aff" : "2px solid rgba(0,0,0,0.18)"};
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          font-size:${selected ? 23 : 20}px;
+          box-shadow:
+            0 4px 14px rgba(0,0,0,0.24),
+            0 1px 3px rgba(0,0,0,0.12);
+          transform: translateY(0);
+          transition: all .2s ease;
         "
       >
         ${emoji}
       </div>
     `,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-    popupAnchor: [0, -17],
+
+    iconSize: selected ? [44, 44] : [38, 38],
+    iconAnchor: selected
+      ? [22, 22]
+      : [19, 19],
+    popupAnchor: [0, selected ? -22 : -19],
   });
 }
 
+
 // ============================================================
-// CAMERA HELPERS
+// HELPERS
 // ============================================================
 
 function getCameraType(camera) {
@@ -86,23 +272,32 @@ function getCameraType(camera) {
   );
 }
 
+
 function normalizeStatus(value) {
-  const status = String(value || "unknown")
+  const status = String(
+    value || "unknown"
+  )
     .toLowerCase()
     .trim();
 
   if (
-    status === "active" ||
-    status === "online" ||
-    status === "operational"
+    [
+      "active",
+      "online",
+      "operational",
+      "working",
+    ].includes(status)
   ) {
     return "active";
   }
 
   if (
-    status === "inactive" ||
-    status === "offline" ||
-    status === "disabled"
+    [
+      "inactive",
+      "offline",
+      "disabled",
+      "not working",
+    ].includes(status)
   ) {
     return "inactive";
   }
@@ -110,45 +305,52 @@ function normalizeStatus(value) {
   return "unknown";
 }
 
+
 function getStatusColor(status) {
-  const normalized = normalizeStatus(status);
+  const normalized =
+    normalizeStatus(status);
 
   if (normalized === "active") {
-    return "#16a34a";
+    return "#34c759";
   }
 
   if (normalized === "inactive") {
-    return "#dc2626";
+    return "#ff3b30";
   }
 
-  return "#f59e0b";
+  return "#ff9500";
 }
 
+
 function getStatusLabel(status) {
-  const normalized = normalizeStatus(status);
+  const normalized =
+    normalizeStatus(status);
 
   if (normalized === "active") {
     return "Active";
   }
 
   if (normalized === "inactive") {
-    return "Inactive / Offline";
+    return "Offline";
   }
 
-  return "Pending / Unknown";
+  return "Unknown";
 }
 
+
 function normalizeVerification(value) {
-  const verification = String(value || "pending")
+  const verification = String(
+    value || "pending"
+  )
     .toLowerCase()
     .trim();
 
-  if (verification === "approved") {
-    return "approved";
-  }
-
   if (verification === "verified") {
     return "verified";
+  }
+
+  if (verification === "approved") {
+    return "approved";
   }
 
   if (
@@ -161,29 +363,30 @@ function normalizeVerification(value) {
   return "pending";
 }
 
-function getVerificationColor(status) {
-  const verification = normalizeVerification(status);
+
+function getVerificationColor(value) {
+  const status =
+    normalizeVerification(value);
 
   if (
-    verification === "verified" ||
-    verification === "approved"
+    status === "verified" ||
+    status === "approved"
   ) {
-    return "#16a34a";
+    return "#34c759";
   }
 
-  if (verification === "rejected") {
-    return "#dc2626";
+  if (status === "rejected") {
+    return "#ff3b30";
   }
 
-  return "#f59e0b";
+  return "#ff9500";
 }
 
-// ============================================================
-// TRAFFIC HELPERS
-// ============================================================
 
-function normalizeCongestionLevel(value) {
-  const level = String(value || "unknown")
+function normalizeTraffic(value) {
+  const level = String(
+    value || "unknown"
+  )
     .toLowerCase()
     .trim();
 
@@ -212,287 +415,380 @@ function normalizeCongestionLevel(value) {
   return "unknown";
 }
 
-function getTrafficColor(level) {
-  const normalized = normalizeCongestionLevel(level);
 
-  if (normalized === "low") {
-    return "#22c55e";
+function trafficColor(value) {
+  const level =
+    normalizeTraffic(value);
+
+  if (level === "low") {
+    return "#34c759";
   }
 
-  if (normalized === "moderate") {
-    return "#eab308";
+  if (level === "moderate") {
+    return "#ffcc00";
   }
 
-  if (normalized === "high") {
-    return "#f97316";
+  if (level === "high") {
+    return "#ff9500";
   }
 
-  if (normalized === "severe") {
-    return "#ef4444";
+  if (level === "severe") {
+    return "#ff3b30";
   }
 
-  return "#64748b";
+  return "#8e8e93";
 }
 
-function getTrafficWeight(level) {
-  const normalized = normalizeCongestionLevel(level);
 
-  if (normalized === "severe") {
+function trafficWeight(value) {
+  const level =
+    normalizeTraffic(value);
+
+  if (level === "severe") {
     return 8;
   }
 
-  if (normalized === "high") {
+  if (level === "high") {
     return 7;
   }
 
-  if (normalized === "moderate") {
+  if (level === "moderate") {
     return 6;
   }
 
   return 5;
 }
 
+
+function formatDate(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleString();
+}
+
+
 // ============================================================
 // TRAFFIC COORDINATES
 // ============================================================
 
 function getTrafficCoordinates(segment) {
-  // GeoJSON LineString:
-  // coordinates = [[longitude, latitude], ...]
   if (
-    segment?.geometry?.type === "LineString" &&
-    Array.isArray(segment.geometry.coordinates)
+    segment?.geometry?.type ===
+      "LineString" &&
+    Array.isArray(
+      segment.geometry.coordinates
+    )
   ) {
-    const coordinates = segment.geometry.coordinates
-      .map((point) => {
-        if (!Array.isArray(point) || point.length < 2) {
-          return null;
-        }
+    const coordinates =
+      segment.geometry.coordinates
+        .map((point) => {
+          if (
+            !Array.isArray(point) ||
+            point.length < 2
+          ) {
+            return null;
+          }
 
-        const longitude = Number(point[0]);
-        const latitude = Number(point[1]);
+          const longitude =
+            Number(point[0]);
 
-        if (
-          !Number.isFinite(latitude) ||
-          !Number.isFinite(longitude)
-        ) {
-          return null;
-        }
+          const latitude =
+            Number(point[1]);
 
-        return [latitude, longitude];
-      })
-      .filter(Boolean);
+          if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude)
+          ) {
+            return null;
+          }
 
-    if (coordinates.length >= 2) {
-      return coordinates;
-    }
-  }
-
-  // Generic coordinates:
-  // [[longitude, latitude], ...]
-  if (Array.isArray(segment?.coordinates)) {
-    const coordinates = segment.coordinates
-      .map((point) => {
-        if (!Array.isArray(point) || point.length < 2) {
-          return null;
-        }
-
-        const first = Number(point[0]);
-        const second = Number(point[1]);
-
-        if (
-          !Number.isFinite(first) ||
-          !Number.isFinite(second)
-        ) {
-          return null;
-        }
-
-        return [second, first];
-      })
-      .filter(Boolean);
+          return [latitude, longitude];
+        })
+        .filter(Boolean);
 
     if (coordinates.length >= 2) {
       return coordinates;
     }
   }
 
-  // Start/end coordinate format.
-  const startLatitude = Number(
+  if (
+    Array.isArray(
+      segment?.coordinates
+    )
+  ) {
+    const coordinates =
+      segment.coordinates
+        .map((point) => {
+          if (
+            !Array.isArray(point) ||
+            point.length < 2
+          ) {
+            return null;
+          }
+
+          const longitude =
+            Number(point[0]);
+
+          const latitude =
+            Number(point[1]);
+
+          if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude)
+          ) {
+            return null;
+          }
+
+          return [latitude, longitude];
+        })
+        .filter(Boolean);
+
+    if (coordinates.length >= 2) {
+      return coordinates;
+    }
+  }
+
+  const startLat = Number(
     segment?.start_latitude
   );
 
-  const startLongitude = Number(
+  const startLng = Number(
     segment?.start_longitude
   );
 
-  const endLatitude = Number(
+  const endLat = Number(
     segment?.end_latitude
   );
 
-  const endLongitude = Number(
+  const endLng = Number(
     segment?.end_longitude
   );
 
   if (
-    Number.isFinite(startLatitude) &&
-    Number.isFinite(startLongitude) &&
-    Number.isFinite(endLatitude) &&
-    Number.isFinite(endLongitude)
+    Number.isFinite(startLat) &&
+    Number.isFinite(startLng) &&
+    Number.isFinite(endLat) &&
+    Number.isFinite(endLng)
   ) {
     return [
-      [startLatitude, startLongitude],
-      [endLatitude, endLongitude],
+      [startLat, startLng],
+      [endLat, endLng],
     ];
   }
 
   return null;
 }
 
+
 // ============================================================
-// MAP FIT COMPONENT
+// MAP VIEW CONTROLLER
 // ============================================================
 
-function FitMap({
+function MapController({
   cameras,
   fitTrigger,
 }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!Array.isArray(cameras) || cameras.length === 0) {
+    if (!Array.isArray(cameras)) {
       return;
     }
 
-    const validCameras = cameras.filter(
+    const valid = cameras.filter(
       (camera) =>
-        Number.isFinite(Number(camera?.latitude)) &&
-        Number.isFinite(Number(camera?.longitude))
+        Number.isFinite(
+          Number(camera?.latitude)
+        ) &&
+        Number.isFinite(
+          Number(camera?.longitude)
+        )
     );
 
-    if (validCameras.length === 0) {
+    if (!valid.length) {
       return;
     }
 
     const bounds = L.latLngBounds(
-      validCameras.map((camera) => [
+      valid.map((camera) => [
         Number(camera.latitude),
         Number(camera.longitude),
       ])
     );
 
     map.fitBounds(bounds, {
-      padding: [45, 45],
+      paddingTopLeft: [40, 120],
+      paddingBottomRight: [40, 120],
       maxZoom: 13,
+      animate: true,
     });
   }, [cameras, fitTrigger, map]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [map]);
+
   return null;
 }
+
+
+// ============================================================
+// MAP CLICK HANDLER
+// ============================================================
+
+function MapClickHandler({
+  onMapClick,
+}) {
+  useMapEvents({
+    click() {
+      onMapClick();
+    },
+  });
+
+  return null;
+}
+
 
 // ============================================================
 // CAMERA POPUP
 // ============================================================
 
-function CameraPopup({ camera }) {
-  const cameraType = getCameraType(camera);
+function CameraPopup({
+  camera,
+}) {
+  const type =
+    getCameraType(camera);
 
-  const status = normalizeStatus(
-    camera?.status
-  );
+  const status =
+    normalizeStatus(camera?.status);
 
-  const verification = normalizeVerification(
-    camera?.verification_status
-  );
-
-  const statusColor = getStatusColor(status);
-
-  const verificationColor =
-    getVerificationColor(verification);
+  const verification =
+    normalizeVerification(
+      camera?.verification_status
+    );
 
   return (
     <div
       style={{
-        minWidth: "270px",
-        maxWidth: "340px",
+        minWidth: 270,
+        maxWidth: 340,
         fontFamily:
-          "Arial, Helvetica, sans-serif",
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       }}
     >
-      {/* HEADER */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            background:
+              "linear-gradient(135deg,#f2f2f7,#ffffff)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 23,
+            boxShadow:
+              "inset 0 0 0 1px #e5e5ea",
+          }}
+        >
+          {getCameraEmoji(type)}
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 17,
+              fontWeight: 750,
+              color: "#111827",
+            }}
+          >
+            {type}
+          </div>
+
+          <div
+            style={{
+              color: "#8e8e93",
+              fontSize: 12,
+              marginTop: 3,
+            }}
+          >
+            Camera #{camera?.id ?? "—"}
+          </div>
+        </div>
+      </div>
 
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "10px",
-          marginBottom: "10px",
+          gap: 6,
+          flexWrap: "wrap",
+          marginBottom: 13,
         }}
       >
-        <div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: "17px",
-              color: "#111827",
-            }}
-          >
-            {cameraType}
-          </h3>
-
-          {camera?.id !== undefined && (
-            <div
-              style={{
-                color: "#64748b",
-                fontSize: "12px",
-                marginTop: "3px",
-              }}
-            >
-              Camera ID: {camera.id}
-            </div>
-          )}
-        </div>
-
         <span
           style={{
-            background: statusColor,
-            color: "#ffffff",
-            borderRadius: "999px",
-            padding: "4px 8px",
-            fontSize: "11px",
-            fontWeight: "700",
-            whiteSpace: "nowrap",
+            background:
+              getStatusColor(status),
+            color: "#fff",
+            padding: "4px 9px",
+            borderRadius: 999,
+            fontSize: 11,
+            fontWeight: 700,
           }}
         >
           {getStatusLabel(status)}
         </span>
-      </div>
 
-      {/* VERIFICATION */}
+        <span
+          style={{
+            background:
+              getVerificationColor(
+                verification
+              ),
+            color: "#fff",
+            padding: "4px 9px",
+            borderRadius: 999,
+            fontSize: 11,
+            fontWeight: 700,
+            textTransform: "capitalize",
+          }}
+        >
+          {verification}
+        </span>
+      </div>
 
       <div
         style={{
-          display: "inline-block",
-          background: verificationColor,
-          color: "#ffffff",
-          borderRadius: "999px",
-          padding: "4px 9px",
-          fontSize: "11px",
-          fontWeight: "700",
-          marginBottom: "10px",
-          textTransform: "capitalize",
-        }}
-      >
-        {verification}
-      </div>
-
-      {/* DETAILS */}
-
-      <div
-        style={{
-          lineHeight: "1.65",
-          fontSize: "13px",
-          color: "#1f2937",
+          borderTop:
+            "1px solid #e5e5ea",
+          paddingTop: 10,
+          lineHeight: 1.7,
+          fontSize: 13,
+          color: "#3a3a3c",
         }}
       >
         {camera?.city && (
@@ -506,13 +802,6 @@ function CameraPopup({ camera }) {
           <div>
             <strong>State:</strong>{" "}
             {camera.state}
-          </div>
-        )}
-
-        {camera?.country && (
-          <div>
-            <strong>Country:</strong>{" "}
-            {camera.country}
           </div>
         )}
 
@@ -530,21 +819,29 @@ function CameraPopup({ camera }) {
           </div>
         )}
 
-        {camera?.speed_limit !== null &&
-          camera?.speed_limit !== undefined && (
+        {camera?.speed_limit !==
+          null &&
+          camera?.speed_limit !==
+            undefined && (
             <div>
-              <strong>Speed Limit:</strong>{" "}
+              <strong>Speed:</strong>{" "}
               {camera.speed_limit} km/h
             </div>
           )}
 
-        {camera?.latitude !== undefined &&
-          camera?.longitude !== undefined && (
+        {camera?.latitude !==
+          undefined &&
+          camera?.longitude !==
+            undefined && (
             <div>
-              <strong>Coordinates:</strong>{" "}
-              {Number(camera.latitude).toFixed(5)}
+              <strong>Location:</strong>{" "}
+              {Number(
+                camera.latitude
+              ).toFixed(5)}
               ,{" "}
-              {Number(camera.longitude).toFixed(5)}
+              {Number(
+                camera.longitude
+              ).toFixed(5)}
             </div>
           )}
 
@@ -557,133 +854,131 @@ function CameraPopup({ camera }) {
 
         {camera?.last_verified && (
           <div>
-            <strong>Last Verified:</strong>{" "}
-            {new Date(
+            <strong>Verified:</strong>{" "}
+            {formatDate(
               camera.last_verified
-            ).toLocaleString()}
+            )}
           </div>
         )}
       </div>
 
-      {/* SOURCE */}
-
       {camera?.source_url && (
-        <div
+        <a
+          href={camera.source_url}
+          target="_blank"
+          rel="noreferrer"
           style={{
-            marginTop: "12px",
-            paddingTop: "10px",
+            display: "block",
+            marginTop: 13,
+            paddingTop: 11,
             borderTop:
-              "1px solid #e5e7eb",
+              "1px solid #e5e5ea",
+            color: "#007aff",
+            fontWeight: 700,
+            textDecoration: "none",
+            fontSize: 13,
           }}
         >
-          <a
-            href={camera.source_url}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              color: "#2563eb",
-              fontWeight: "700",
-              textDecoration: "none",
-            }}
-          >
-            View Source →
-          </a>
-        </div>
+          View official source →
+        </a>
       )}
     </div>
   );
 }
 
+
 // ============================================================
 // TRAFFIC POPUP
 // ============================================================
 
-function TrafficPopup({ segment }) {
-  const congestion =
-    normalizeCongestionLevel(
+function TrafficPopup({
+  segment,
+}) {
+  const level =
+    normalizeTraffic(
       segment?.congestion_level
     );
-
-  const color =
-    getTrafficColor(congestion);
-
-  const trafficStatus =
-    segment?.traffic_status
-      ? String(segment.traffic_status).replaceAll(
-          "_",
-          " "
-        )
-      : "";
 
   return (
     <div
       style={{
-        minWidth: "250px",
+        minWidth: 250,
         fontFamily:
-          "Arial, Helvetica, sans-serif",
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       }}
     >
-      <h3
+      <div
         style={{
-          margin: "0 0 8px",
-          fontSize: "17px",
+          fontSize: 17,
+          fontWeight: 750,
+          marginBottom: 8,
         }}
       >
         🚦{" "}
         {segment?.road_name ||
           "Traffic Segment"}
-      </h3>
-
-      <div
-        style={{
-          display: "inline-block",
-          background: color,
-          color: "#ffffff",
-          padding: "5px 10px",
-          borderRadius: "999px",
-          fontSize: "12px",
-          fontWeight: "700",
-          textTransform: "capitalize",
-          marginBottom: "10px",
-        }}
-      >
-        {congestion} congestion
       </div>
 
-      <div
+      <span
         style={{
-          lineHeight: "1.65",
-          fontSize: "13px",
+          display: "inline-block",
+          background:
+            trafficColor(level),
+          color: "#fff",
+          padding: "5px 10px",
+          borderRadius: 999,
+          fontSize: 11,
+          fontWeight: 750,
+          textTransform: "capitalize",
+          marginBottom: 11,
         }}
       >
-        {trafficStatus && (
+        {level} congestion
+      </span>
+
+      <div
+        style={{
+          lineHeight: 1.7,
+          fontSize: 13,
+          color: "#3a3a3c",
+        }}
+      >
+        {segment?.traffic_status && (
           <div>
             <strong>Status:</strong>{" "}
-            {trafficStatus}
+            {String(
+              segment.traffic_status
+            ).replaceAll("_", " ")}
           </div>
         )}
 
-        {segment?.current_speed !== null &&
-          segment?.current_speed !== undefined && (
+        {segment?.current_speed !==
+          null &&
+          segment?.current_speed !==
+            undefined && (
             <div>
-              <strong>Current Speed:</strong>{" "}
+              <strong>Current speed:</strong>{" "}
               {segment.current_speed} km/h
             </div>
           )}
 
-        {segment?.free_flow_speed !== null &&
-          segment?.free_flow_speed !== undefined && (
+        {segment?.free_flow_speed !==
+          null &&
+          segment?.free_flow_speed !==
+            undefined && (
             <div>
-              <strong>Free Flow:</strong>{" "}
+              <strong>Free flow:</strong>{" "}
               {segment.free_flow_speed} km/h
             </div>
           )}
 
-        {segment?.delay_seconds !== null &&
-          segment?.delay_seconds !== undefined && (
+        {segment?.delay_seconds !==
+          null &&
+          segment?.delay_seconds !==
+            undefined && (
             <div>
               <strong>Delay:</strong>{" "}
-              {segment.delay_seconds} seconds
+              {segment.delay_seconds}s
             </div>
           )}
 
@@ -694,25 +989,92 @@ function TrafficPopup({ segment }) {
           </div>
         )}
 
-        {segment?.source_id && (
-          <div>
-            <strong>Source ID:</strong>{" "}
-            {segment.source_id}
-          </div>
-        )}
-
         {segment?.observed_at && (
           <div>
             <strong>Observed:</strong>{" "}
-            {new Date(
+            {formatDate(
               segment.observed_at
-            ).toLocaleString()}
+            )}
           </div>
         )}
       </div>
     </div>
   );
 }
+
+
+// ============================================================
+// STAT CARD
+// ============================================================
+
+function MiniStat({
+  icon,
+  label,
+  value,
+  detail,
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 11,
+          background: "#f2f2f7",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+        }}
+      >
+        {icon}
+      </div>
+
+      <div
+        style={{
+          minWidth: 0,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            color: "#8e8e93",
+          }}
+        >
+          {label}
+        </div>
+
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 750,
+            color: "#111827",
+          }}
+        >
+          {value}
+        </div>
+
+        {detail && (
+          <div
+            style={{
+              fontSize: 10,
+              color: "#8e8e93",
+            }}
+          >
+            {detail}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 // ============================================================
 // MAIN COMPONENT
@@ -749,6 +1111,15 @@ export default function CameraMap() {
     setVerificationFilter,
   ] = useState("All");
 
+  const [selectedCamera, setSelectedCamera] =
+    useState(null);
+
+  const [cameraRefreshing, setCameraRefreshing] =
+    useState(false);
+
+  const [lastCameraUpdate, setLastCameraUpdate] =
+    useState(null);
+
   // ==========================================================
   // TRAFFIC STATE
   // ==========================================================
@@ -761,12 +1132,17 @@ export default function CameraMap() {
   const [
     trafficLoading,
     setTrafficLoading,
-  ] = useState(true);
+  ] = useState(false);
 
   const [
     trafficError,
     setTrafficError,
   ] = useState("");
+
+  const [
+    trafficRefreshing,
+    setTrafficRefreshing,
+  ] = useState(false);
 
   const [
     showTraffic,
@@ -778,25 +1154,15 @@ export default function CameraMap() {
     setLastTrafficUpdate,
   ] = useState(null);
 
-  const [
-    lastCameraUpdate,
-    setLastCameraUpdate,
-  ] = useState(null);
+  // ==========================================================
+  // MAP STATE
+  // ==========================================================
 
-  const [
-    cameraRefreshing,
-    setCameraRefreshing,
-  ] = useState(false);
+  const [fitTrigger, setFitTrigger] =
+    useState(0);
 
-  const [
-    trafficRefreshing,
-    setTrafficRefreshing,
-  ] = useState(false);
-
-  const [
-    fitTrigger,
-    setFitTrigger,
-  ] = useState(0);
+  const [mapStyle, setMapStyle] =
+    useState("standard");
 
   // ==========================================================
   // LOAD CAMERAS
@@ -829,26 +1195,22 @@ export default function CameraMap() {
         const data =
           await response.json();
 
-        let cameraData = [];
+        let result = [];
 
-        // Supports:
-        // { cameras: [...] }
-        if (Array.isArray(data?.cameras)) {
-          cameraData = data.cameras;
-        }
-
-        // Also supports a direct array response.
-        else if (Array.isArray(data)) {
-          cameraData = data;
-        }
-
-        else {
+        if (Array.isArray(data)) {
+          result = data;
+        } else if (
+          Array.isArray(data?.cameras)
+        ) {
+          result = data.cameras;
+        } else {
           throw new Error(
-            "Invalid API response: cameras is not an array."
+            "Invalid camera API response."
           );
         }
 
-        setCameras(cameraData);
+        setCameras(result);
+
         setLastCameraUpdate(
           new Date()
         );
@@ -860,7 +1222,7 @@ export default function CameraMap() {
 
         setError(
           err?.message ||
-            "Failed to load cameras."
+            "Unable to load cameras."
         );
       } finally {
         if (manual) {
@@ -873,9 +1235,11 @@ export default function CameraMap() {
     []
   );
 
+
   useEffect(() => {
     loadCameras();
   }, [loadCameras]);
+
 
   // ==========================================================
   // LOAD TRAFFIC
@@ -908,34 +1272,36 @@ export default function CameraMap() {
         const data =
           await response.json();
 
-        let segmentData = [];
+        let result = [];
 
-        if (Array.isArray(data?.segments)) {
-          segmentData = data.segments;
-        } else if (Array.isArray(data)) {
-          segmentData = data;
+        if (Array.isArray(data)) {
+          result = data;
+        } else if (
+          Array.isArray(data?.segments)
+        ) {
+          result = data.segments;
         } else {
           throw new Error(
-            "Invalid traffic API response: segments is not an array."
+            "Invalid traffic API response."
           );
         }
 
-        setTrafficSegments(
-          segmentData
-        );
+        setTrafficSegments(result);
 
         setLastTrafficUpdate(
           new Date()
         );
       } catch (err) {
-        console.error(
-          "Traffic API error:",
+        console.warn(
+          "Traffic API unavailable:",
           err
         );
 
+        setTrafficSegments([]);
+
         setTrafficError(
           err?.message ||
-            "Failed to load traffic."
+            "Traffic data unavailable."
         );
       } finally {
         if (manual) {
@@ -948,10 +1314,11 @@ export default function CameraMap() {
     []
   );
 
+
   useEffect(() => {
     loadTraffic();
 
-    const timer = setInterval(
+    const interval = setInterval(
       () => {
         loadTraffic();
       },
@@ -959,16 +1326,17 @@ export default function CameraMap() {
     );
 
     return () => {
-      clearInterval(timer);
+      clearInterval(interval);
     };
   }, [loadTraffic]);
+
 
   // ==========================================================
   // CAMERA TYPES
   // ==========================================================
 
   const cameraTypes = useMemo(() => {
-    const types = cameras
+    const values = cameras
       .map((camera) =>
         getCameraType(camera)
       )
@@ -977,10 +1345,11 @@ export default function CameraMap() {
     return [
       "All",
       ...Array.from(
-        new Set(types)
+        new Set(values)
       ).sort(),
     ];
   }, [cameras]);
+
 
   // ==========================================================
   // STATES
@@ -992,10 +1361,9 @@ export default function CameraMap() {
         (camera) =>
           camera?.state
       )
-      .filter(
-        (state) =>
-          state &&
-          String(state).trim()
+      .filter(Boolean)
+      .map((value) =>
+        String(value)
       );
 
     return [
@@ -1006,52 +1374,53 @@ export default function CameraMap() {
     ];
   }, [cameras]);
 
+
   // ==========================================================
   // FILTER CAMERAS
   // ==========================================================
 
   const filteredCameras = useMemo(() => {
-    const query = search
-      .trim()
-      .toLowerCase();
+    const query =
+      search.trim().toLowerCase();
 
     return cameras.filter(
       (camera) => {
-        const cameraType =
+        const type =
           getCameraType(camera);
+
+        const status =
+          normalizeStatus(
+            camera?.status
+          );
+
+        const verification =
+          normalizeVerification(
+            camera?.verification_status
+          );
 
         const matchesType =
           typeFilter === "All" ||
-          String(cameraType) ===
+          String(type) ===
             String(typeFilter);
 
         const matchesState =
           stateFilter === "All" ||
           String(
             camera?.state || ""
-          ) === String(stateFilter);
-
-        const normalizedCameraStatus =
-          normalizeStatus(
-            camera?.status
-          );
+          ) ===
+            String(stateFilter);
 
         const matchesStatus =
           statusFilter === "All" ||
-          normalizedCameraStatus ===
-            statusFilter;
-
-        const cameraVerification =
-          normalizeVerification(
-            camera?.verification_status
-          );
+          status === statusFilter;
 
         const matchesVerification =
-          verificationFilter === "All" ||
-          cameraVerification ===
+          verificationFilter ===
+            "All" ||
+          verification ===
             verificationFilter;
 
-        const searchableText = [
+        const searchable = [
           camera?.id,
           camera?.city,
           camera?.state,
@@ -1072,9 +1441,7 @@ export default function CameraMap() {
 
         const matchesSearch =
           !query ||
-          searchableText.includes(
-            query
-          );
+          searchable.includes(query);
 
         return (
           matchesType &&
@@ -1093,6 +1460,7 @@ export default function CameraMap() {
     statusFilter,
     verificationFilter,
   ]);
+
 
   // ==========================================================
   // VALID TRAFFIC
@@ -1120,95 +1488,79 @@ export default function CameraMap() {
         .filter(Boolean);
     }, [trafficSegments]);
 
+
+  // ==========================================================
+  // CAMERA COUNTS
+  // ==========================================================
+
+  const cameraStats = useMemo(() => {
+    const stats = {
+      active: 0,
+      inactive: 0,
+      unknown: 0,
+      verified: 0,
+      pending: 0,
+      rejected: 0,
+    };
+
+    cameras.forEach((camera) => {
+      const status =
+        normalizeStatus(
+          camera?.status
+        );
+
+      const verification =
+        normalizeVerification(
+          camera?.verification_status
+        );
+
+      stats[status] += 1;
+
+      if (
+        verification === "verified" ||
+        verification === "approved"
+      ) {
+        stats.verified += 1;
+      } else if (
+        verification === "rejected"
+      ) {
+        stats.rejected += 1;
+      } else {
+        stats.pending += 1;
+      }
+    });
+
+    return stats;
+  }, [cameras]);
+
+
   // ==========================================================
   // TRAFFIC COUNTS
   // ==========================================================
 
-  const trafficCounts =
-    useMemo(() => {
-      const counts = {
-        low: 0,
-        moderate: 0,
-        high: 0,
-        severe: 0,
-        unknown: 0,
-      };
+  const trafficStats = useMemo(() => {
+    const result = {
+      low: 0,
+      moderate: 0,
+      high: 0,
+      severe: 0,
+      unknown: 0,
+    };
 
-      trafficSegments.forEach(
-        (segment) => {
-          const level =
-            normalizeCongestionLevel(
-              segment?.congestion_level
-            );
+    trafficSegments.forEach(
+      (segment) => {
+        const level =
+          normalizeTraffic(
+            segment?.congestion_level
+          );
 
-          if (
-            Object.prototype.hasOwnProperty.call(
-              counts,
-              level
-            )
-          ) {
-            counts[level] += 1;
-          } else {
-            counts.unknown += 1;
-          }
-        }
-      );
+        result[level] += 1;
+      }
+    );
 
-      return counts;
-    }, [trafficSegments]);
+    return result;
+  }, [trafficSegments]);
 
-  // ==========================================================
-  // CAMERA STATUS COUNTS
-  // ==========================================================
-
-  const cameraStatusCounts =
-    useMemo(() => {
-      const counts = {
-        active: 0,
-        inactive: 0,
-        unknown: 0,
-      };
-
-      cameras.forEach(
-        (camera) => {
-          const status =
-            normalizeStatus(
-              camera?.status
-            );
-
-          counts[status] += 1;
-        }
-      );
-
-      return counts;
-    }, [cameras]);
-
-  // ==========================================================
-  // VERIFICATION COUNTS
-  // ==========================================================
-
-  const verificationCounts =
-    useMemo(() => {
-      const counts = {
-        verified: 0,
-        approved: 0,
-        pending: 0,
-        rejected: 0,
-      };
-
-      cameras.forEach(
-        (camera) => {
-          const verification =
-            normalizeVerification(
-              camera?.verification_status
-            );
-
-          counts[verification] += 1;
-        }
-      );
-
-      return counts;
-    }, [cameras]);
 
   // ==========================================================
   // CLEAR FILTERS
@@ -1222,488 +1574,88 @@ export default function CameraMap() {
     setVerificationFilter("All");
   };
 
-  // ==========================================================
-  // DEFAULT INDIA CENTER
-  // ==========================================================
-
-  const defaultCenter = [
-    22.9734,
-    78.6569,
-  ];
 
   // ==========================================================
-  // UI STYLES
+  // TILE MAP
   // ==========================================================
 
-  const controlStyle = {
-    padding: "8px 10px",
-    border: "1px solid #d1d5db",
-    borderRadius: "7px",
-    background: "#ffffff",
-    boxShadow:
-      "0 2px 6px rgba(0,0,0,0.15)",
-    fontSize: "13px",
-  };
+  const tileUrl =
+    mapStyle === "light"
+      ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-  const buttonStyle = {
-    ...controlStyle,
-    cursor: "pointer",
-    fontWeight: "700",
-  };
 
   // ==========================================================
   // RENDER
   // ==========================================================
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {/* ====================================================
-          TOP CONTROLS
-      ===================================================== */}
-
-      <div
-        style={{
-          position: "absolute",
-          zIndex: 1000,
-          top: "10px",
-          left: "10px",
-          right: "10px",
-          display: "flex",
-          gap: "7px",
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        {/* SEARCH */}
-
-        <input
-          type="text"
-          placeholder="Search camera, city, road, state..."
-          value={search}
-          onChange={(event) =>
-            setSearch(
-              event.target.value
-            )
-          }
-          style={{
-            ...controlStyle,
-            minWidth: "230px",
-          }}
-        />
-
-        {/* CAMERA TYPE */}
-
-        <select
-          value={typeFilter}
-          onChange={(event) =>
-            setTypeFilter(
-              event.target.value
-            )
-          }
-          style={controlStyle}
-        >
-          {cameraTypes.map(
-            (type) => (
-              <option
-                key={type}
-                value={type}
-              >
-                {type}
-              </option>
-            )
-          )}
-        </select>
-
-        {/* STATE */}
-
-        <select
-          value={stateFilter}
-          onChange={(event) =>
-            setStateFilter(
-              event.target.value
-            )
-          }
-          style={controlStyle}
-        >
-          {states.map(
-            (state) => (
-              <option
-                key={state}
-                value={state}
-              >
-                {state}
-              </option>
-            )
-          )}
-        </select>
-
-        {/* STATUS */}
-
-        <select
-          value={statusFilter}
-          onChange={(event) =>
-            setStatusFilter(
-              event.target.value
-            )
-          }
-          style={controlStyle}
-        >
-          <option value="All">
-            All Status
-          </option>
-
-          <option value="active">
-            🟢 Active
-          </option>
-
-          <option value="unknown">
-            🟠 Pending / Unknown
-          </option>
-
-          <option value="inactive">
-            🔴 Inactive / Offline
-          </option>
-        </select>
-
-        {/* VERIFICATION */}
-
-        <select
-          value={verificationFilter}
-          onChange={(event) =>
-            setVerificationFilter(
-              event.target.value
-            )
-          }
-          style={controlStyle}
-        >
-          <option value="All">
-            All Verification
-          </option>
-
-          <option value="verified">
-            ✅ Verified
-          </option>
-
-          <option value="pending">
-            ⏳ Pending
-          </option>
-
-          <option value="approved">
-            ✅ Approved
-          </option>
-
-          <option value="rejected">
-            ❌ Rejected
-          </option>
-        </select>
-
-        {/* CAMERA COUNT */}
-
-        <div
-          style={{
-            ...controlStyle,
-            fontWeight: "700",
-          }}
-        >
-          📷 {filteredCameras.length} /{" "}
-          {cameras.length}
-        </div>
-
-        {/* ACTIVE */}
-
-        <div
-          style={{
-            ...controlStyle,
-            color: "#15803d",
-            fontWeight: "700",
-          }}
-        >
-          🟢 Active{" "}
-          {cameraStatusCounts.active}
-        </div>
-
-        {/* VERIFIED */}
-
-        <div
-          style={{
-            ...controlStyle,
-            color: "#166534",
-            fontWeight: "700",
-          }}
-        >
-          ✅ Verified{" "}
-          {verificationCounts.verified}
-        </div>
-
-        {/* PENDING */}
-
-        <div
-          style={{
-            ...controlStyle,
-            color: "#b45309",
-            fontWeight: "700",
-          }}
-        >
-          ⏳ Pending{" "}
-          {verificationCounts.pending}
-        </div>
-
-        {/* TRAFFIC */}
-
-        <button
-          type="button"
-          onClick={() =>
-            setShowTraffic(
-              (current) => !current
-            )
-          }
-          style={{
-            ...buttonStyle,
-            border: showTraffic
-              ? "2px solid #2563eb"
-              : "1px solid #d1d5db",
-            background: showTraffic
-              ? "#eff6ff"
-              : "#ffffff",
-            color: showTraffic
-              ? "#1d4ed8"
-              : "#333333",
-          }}
-        >
-          🚦 Traffic{" "}
-          {showTraffic ? "ON" : "OFF"}
-        </button>
-
-        {/* REFRESH CAMERAS */}
-
-        <button
-          type="button"
-          onClick={() =>
-            loadCameras(true)
-          }
-          disabled={cameraRefreshing}
-          style={{
-            ...buttonStyle,
-            opacity:
-              cameraRefreshing ? 0.65 : 1,
-          }}
-        >
-          🔄{" "}
-          {cameraRefreshing
-            ? "Refreshing..."
-            : "Refresh"}
-        </button>
-
-        {/* UPDATE TRAFFIC */}
-
-        <button
-          type="button"
-          onClick={() =>
-            loadTraffic(true)
-          }
-          disabled={trafficRefreshing}
-          style={{
-            ...buttonStyle,
-            opacity:
-              trafficRefreshing ? 0.65 : 1,
-          }}
-        >
-          🚦{" "}
-          {trafficRefreshing
-            ? "Updating..."
-            : "Update Traffic"}
-        </button>
-
-        {/* FIT */}
-
-        <button
-          type="button"
-          onClick={() =>
-            setFitTrigger(
-              (value) => value + 1
-            )
-          }
-          style={buttonStyle}
-        >
-          🎯 Fit All
-        </button>
-
-        {/* CLEAR */}
-
-        <button
-          type="button"
-          onClick={clearFilters}
-          style={buttonStyle}
-        >
-          ✕ Clear
-        </button>
-      </div>
-
-      {/* ====================================================
-          CAMERA LOADING
-      ===================================================== */}
-
-      {loading && (
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 2000,
-            top: "75px",
-            left: "50%",
-            transform:
-              "translateX(-50%)",
-            background: "#ffffff",
-            padding: "10px 16px",
-            borderRadius: "7px",
-            boxShadow:
-              "0 2px 8px rgba(0,0,0,0.25)",
-            fontWeight: "700",
-          }}
-        >
-          Loading cameras...
-        </div>
-      )}
-
-      {/* ====================================================
-          CAMERA ERROR
-      ===================================================== */}
-
-      {error && (
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 2000,
-            top: "75px",
-            left: "50%",
-            transform:
-              "translateX(-50%)",
-            background: "#ffffff",
-            border:
-              "1px solid #ef4444",
-            color: "#b91c1c",
-            padding: "12px 16px",
-            borderRadius: "7px",
-            boxShadow:
-              "0 2px 8px rgba(0,0,0,0.25)",
-            maxWidth: "500px",
-          }}
-        >
-          <strong>
-            Camera API Error
-          </strong>
-
-          <div
-            style={{
-              marginTop: "4px",
-            }}
-          >
-            {error}
-          </div>
-        </div>
-      )}
-
-      {/* ====================================================
-          TRAFFIC ERROR
-      ===================================================== */}
-
-      {trafficError && (
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 2000,
-            top: "75px",
-            right: "15px",
-            background: "#ffffff",
-            border:
-              "1px solid #ef4444",
-            color: "#b91c1c",
-            padding: "10px 14px",
-            borderRadius: "7px",
-            boxShadow:
-              "0 2px 8px rgba(0,0,0,0.2)",
-            maxWidth: "400px",
-          }}
-        >
-          <strong>
-            Traffic API Error
-          </strong>
-
-          <div
-            style={{
-              marginTop: "3px",
-            }}
-          >
-            {trafficError}
-          </div>
-        </div>
-      )}
+    <div style={styles.shell}>
 
       {/* ====================================================
           MAP
       ===================================================== */}
 
       <MapContainer
-        center={defaultCenter}
+        center={INDIA_CENTER}
         zoom={5}
+        minZoom={4}
+        maxZoom={18}
+        maxBounds={INDIA_BOUNDS}
+        maxBoundsViscosity={0.7}
         scrollWheelZoom={true}
-        style={{
-          width: "100%",
-          height: "100%",
-        }}
+        zoomControl={false}
+        attributionControl={true}
+        style={styles.map}
       >
+
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url={tileUrl}
+          maxZoom={19}
         />
 
-        <FitMap
+        <MapController
           cameras={filteredCameras}
           fitTrigger={fitTrigger}
         />
 
+        <MapClickHandler
+          onMapClick={() =>
+            setSelectedCamera(null)
+          }
+        />
+
         {/* ==================================================
-            TRAFFIC SEGMENTS
+            TRAFFIC
         =================================================== */}
 
         {showTraffic &&
           validTrafficSegments.map(
             (segment, index) => {
-              const congestion =
-                normalizeCongestionLevel(
+              const level =
+                normalizeTraffic(
                   segment?.congestion_level
                 );
 
-              const color =
-                getTrafficColor(
-                  congestion
-                );
-
-              const weight =
-                getTrafficWeight(
-                  congestion
-                );
-
-              const segmentKey =
+              const key =
                 segment?.id ??
-                `${segment?.road_name || "traffic"}-${index}`;
+                `traffic-${index}`;
 
               return (
                 <Polyline
-                  key={`traffic-${segmentKey}`}
+                  key={key}
                   positions={
                     segment._coordinates
                   }
                   pathOptions={{
-                    color,
-                    weight,
-                    opacity: 0.88,
+                    color:
+                      trafficColor(level),
+                    weight:
+                      trafficWeight(
+                        level
+                      ),
+                    opacity: 0.9,
                     lineCap: "round",
                     lineJoin: "round",
                   }}
@@ -1726,7 +1678,7 @@ export default function CameraMap() {
           chunkedLoading
           showCoverageOnHover={false}
           spiderfyOnMaxZoom={true}
-          maxClusterRadius={50}
+          maxClusterRadius={48}
         >
           {filteredCameras.map(
             (camera, index) => {
@@ -1741,28 +1693,46 @@ export default function CameraMap() {
                 );
 
               if (
-                !Number.isFinite(latitude) ||
-                !Number.isFinite(longitude)
+                !Number.isFinite(
+                  latitude
+                ) ||
+                !Number.isFinite(
+                  longitude
+                )
               ) {
                 return null;
               }
 
-              const cameraKey =
+              const key =
                 camera?.id ??
                 `${latitude}-${longitude}-${index}`;
 
+              const isSelected =
+                selectedCamera?.id ===
+                camera?.id;
+
               return (
                 <Marker
-                  key={cameraKey}
+                  key={key}
                   position={[
                     latitude,
                     longitude,
                   ]}
                   icon={createCameraIcon(
-                    getCameraType(camera)
+                    getCameraType(camera),
+                    isSelected
                   )}
+                  eventHandlers={{
+                    click: () =>
+                      setSelectedCamera(
+                        camera
+                      ),
+                  }}
                 >
-                  <Popup>
+                  <Popup
+                    closeButton={true}
+                    autoPan={true}
+                  >
                     <CameraPopup
                       camera={camera}
                     />
@@ -1772,277 +1742,1027 @@ export default function CameraMap() {
             }
           )}
         </MarkerClusterGroup>
+
       </MapContainer>
 
+
       {/* ====================================================
-          MAP LEGEND
+          SEARCH
       ===================================================== */}
 
       <div
         style={{
-          position: "absolute",
-          zIndex: 1000,
-          bottom: "20px",
-          right: "20px",
-          background: "#ffffff",
-          padding: "14px 16px",
-          borderRadius: "9px",
-          boxShadow:
-            "0 2px 10px rgba(0,0,0,0.25)",
-          fontSize: "13px",
-          minWidth: "205px",
+          ...styles.searchPanel,
+          ...styles.glass,
+          borderRadius: 16,
         }}
       >
-        {/* CAMERA TYPES */}
 
-        <div
-          style={{
-            fontWeight: "800",
-            marginBottom: "8px",
-          }}
-        >
-          🇮🇳 Camera Types
-        </div>
+        <div style={styles.searchBox}>
 
-        <div
-          style={{
-            marginBottom: "5px",
-          }}
-        >
-          🚗 Speed Camera
-        </div>
-
-        <div
-          style={{
-            marginBottom: "5px",
-          }}
-        >
-          🚦 Red Light Camera
-        </div>
-
-        <div
-          style={{
-            marginBottom: "5px",
-          }}
-        >
-          📹 Traffic Camera
-        </div>
-
-        <div
-          style={{
-            marginBottom: "10px",
-          }}
-        >
-          🔎 ANPR / ITMS
-        </div>
-
-        <div
-          style={{
-            borderTop:
-              "1px solid #e5e7eb",
-            marginBottom: "10px",
-          }}
-        />
-
-        {/* CAMERA STATUS */}
-
-        <div
-          style={{
-            fontWeight: "800",
-            marginBottom: "8px",
-          }}
-        >
-          Camera Status
-        </div>
-
-        <div
-          style={{
-            marginBottom: "5px",
-          }}
-        >
-          🟢 Active (
-          {cameraStatusCounts.active})
-        </div>
-
-        <div
-          style={{
-            marginBottom: "5px",
-          }}
-        >
-          🟠 Pending / Unknown (
-          {cameraStatusCounts.unknown})
-        </div>
-
-        <div
-          style={{
-            marginBottom: "10px",
-          }}
-        >
-          🔴 Inactive / Offline (
-          {cameraStatusCounts.inactive})
-        </div>
-
-        <div
-          style={{
-            borderTop:
-              "1px solid #e5e7eb",
-            marginBottom: "10px",
-          }}
-        />
-
-        {/* TRAFFIC */}
-
-        <div
-          style={{
-            fontWeight: "800",
-            marginBottom: "8px",
-          }}
-        >
-          🚦 Traffic
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            marginBottom: "5px",
-          }}
-        >
           <span
             style={{
-              width: "24px",
-              height: "5px",
-              borderRadius: "3px",
-              background: "#22c55e",
-            }}
-          />
-
-          Low ({trafficCounts.low})
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            marginBottom: "5px",
-          }}
-        >
-          <span
-            style={{
-              width: "24px",
-              height: "5px",
-              borderRadius: "3px",
-              background: "#eab308",
-            }}
-          />
-
-          Moderate (
-          {trafficCounts.moderate})
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            marginBottom: "5px",
-          }}
-        >
-          <span
-            style={{
-              width: "24px",
-              height: "5px",
-              borderRadius: "3px",
-              background: "#f97316",
-            }}
-          />
-
-          High ({trafficCounts.high})
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            marginBottom: "5px",
-          }}
-        >
-          <span
-            style={{
-              width: "24px",
-              height: "5px",
-              borderRadius: "3px",
-              background: "#ef4444",
-            }}
-          />
-
-          Severe ({trafficCounts.severe})
-        </div>
-
-        {trafficCounts.unknown > 0 && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "7px",
-              marginBottom: "5px",
+              fontSize: 19,
             }}
           >
-            <span
-              style={{
-                width: "24px",
-                height: "5px",
-                borderRadius: "3px",
-                background: "#64748b",
-              }}
-            />
+            🔎
+          </span>
 
-            Unknown ({trafficCounts.unknown})
+          <input
+            type="text"
+            value={search}
+            placeholder="Search cameras, cities, roads..."
+            onChange={(event) =>
+              setSearch(
+                event.target.value
+              )
+            }
+            style={styles.searchInput}
+          />
+
+          {search && (
+            <button
+              type="button"
+              onClick={() =>
+                setSearch("")
+              }
+              style={{
+                border: 0,
+                background:
+                  "#e5e5ea",
+                width: 25,
+                height: 25,
+                borderRadius: "50%",
+                cursor: "pointer",
+                color: "#555",
+              }}
+            >
+              ×
+            </button>
+          )}
+
+        </div>
+
+
+        {/* ==================================================
+            FILTERS
+        =================================================== */}
+
+        <div
+          style={{
+            padding:
+              "0 14px 14px",
+            display: "grid",
+            gridTemplateColumns:
+              "1fr 1fr",
+            gap: 8,
+          }}
+        >
+
+          <select
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(
+                event.target.value
+              )
+            }
+            style={styles.select}
+          >
+            {cameraTypes.map(
+              (type) => (
+                <option
+                  key={type}
+                  value={type}
+                >
+                  {type === "All"
+                    ? "All camera types"
+                    : type}
+                </option>
+              )
+            )}
+          </select>
+
+
+          <select
+            value={stateFilter}
+            onChange={(event) =>
+              setStateFilter(
+                event.target.value
+              )
+            }
+            style={styles.select}
+          >
+            {states.map(
+              (state) => (
+                <option
+                  key={state}
+                  value={state}
+                >
+                  {state === "All"
+                    ? "All states"
+                    : state}
+                </option>
+              )
+            )}
+          </select>
+
+
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value
+              )
+            }
+            style={styles.select}
+          >
+            <option value="All">
+              All statuses
+            </option>
+
+            <option value="active">
+              Active
+            </option>
+
+            <option value="inactive">
+              Offline
+            </option>
+
+            <option value="unknown">
+              Unknown
+            </option>
+          </select>
+
+
+          <select
+            value={verificationFilter}
+            onChange={(event) =>
+              setVerificationFilter(
+                event.target.value
+              )
+            }
+            style={styles.select}
+          >
+            <option value="All">
+              All verification
+            </option>
+
+            <option value="verified">
+              Verified
+            </option>
+
+            <option value="approved">
+              Approved
+            </option>
+
+            <option value="pending">
+              Pending
+            </option>
+
+            <option value="rejected">
+              Rejected
+            </option>
+          </select>
+
+        </div>
+
+
+        {/* FILTER FOOTER */}
+
+        <div
+          style={{
+            padding:
+              "0 14px 13px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "space-between",
+            gap: 8,
+          }}
+        >
+
+          <div
+            style={{
+              fontSize: 12,
+              color: "#8e8e93",
+            }}
+          >
+            Showing{" "}
+            <strong
+              style={{
+                color: "#111827",
+              }}
+            >
+              {filteredCameras.length}
+            </strong>{" "}
+            of {cameras.length}
+          </div>
+
+          <button
+            type="button"
+            onClick={clearFilters}
+            style={{
+              ...styles.smallButton,
+              color: "#007aff",
+            }}
+          >
+            Clear filters
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* ====================================================
+          TOP RIGHT STATISTICS
+      ===================================================== */}
+
+      <div
+        style={{
+          ...styles.statsPanel,
+          ...styles.glass,
+        }}
+      >
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "space-between",
+            marginBottom: 15,
+          }}
+        >
+
+          <div>
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                color: "#111827",
+              }}
+            >
+              India
+            </div>
+
+            <div
+              style={{
+                fontSize: 11,
+                color: "#8e8e93",
+                marginTop: 2,
+              }}
+            >
+              Traffic intelligence
+            </div>
+          </div>
+
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 11,
+              background:
+                "#f2f2f7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent:
+                "center",
+              fontSize: 19,
+            }}
+          >
+            🇮🇳
+          </div>
+
+        </div>
+
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "1fr 1fr",
+            gap: 14,
+          }}
+        >
+
+          <MiniStat
+            icon="📷"
+            label="CAMERAS"
+            value={cameras.length}
+            detail={
+              `${cameraStats.active} active`
+            }
+          />
+
+          <MiniStat
+            icon="✓"
+            label="VERIFIED"
+            value={
+              cameraStats.verified
+            }
+            detail={
+              `${cameraStats.pending} pending`
+            }
+          />
+
+          <MiniStat
+            icon="🚦"
+            label="TRAFFIC"
+            value={
+              trafficSegments.length
+            }
+            detail={
+              trafficSegments.length
+                ? `${trafficStats.high + trafficStats.severe} congested`
+                : "No live data"
+            }
+          />
+
+          <MiniStat
+            icon="🏙️"
+            label="STATES"
+            value={
+              Math.max(
+                states.length - 1,
+                0
+              )
+            }
+            detail="Coverage"
+          />
+
+        </div>
+
+
+        {/* API STATUS */}
+
+        <div
+          style={{
+            marginTop: 15,
+            paddingTop: 12,
+            borderTop:
+              "1px solid #e5e5ea",
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            fontSize: 11,
+            color: "#8e8e93",
+          }}
+        >
+
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background:
+                error
+                  ? "#ff3b30"
+                  : "#34c759",
+              boxShadow:
+                error
+                  ? "0 0 0 3px rgba(255,59,48,.12)"
+                  : "0 0 0 3px rgba(52,199,89,.12)",
+            }}
+          />
+
+          {error
+            ? "Camera API unavailable"
+            : "Camera API online"}
+
+        </div>
+
+      </div>
+
+
+      {/* ====================================================
+          LEFT BOTTOM INFORMATION
+      ===================================================== */}
+
+      <div
+        style={{
+          ...styles.bottomPanel,
+          ...styles.glass,
+        }}
+      >
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "space-between",
+            gap: 10,
+          }}
+        >
+
+          <div>
+
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: "#111827",
+              }}
+            >
+              Live map
+            </div>
+
+            <div
+              style={{
+                marginTop: 3,
+                fontSize: 11,
+                color: "#8e8e93",
+              }}
+            >
+              Camera enforcement &
+              traffic intelligence
+            </div>
+
+          </div>
+
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowTraffic(
+                (value) => !value
+              )
+            }
+            style={{
+              border: 0,
+              borderRadius: 10,
+              padding:
+                "8px 11px",
+              cursor: "pointer",
+              fontSize: 11,
+              fontWeight: 750,
+              background:
+                showTraffic
+                  ? "#007aff"
+                  : "#f2f2f7",
+              color:
+                showTraffic
+                  ? "#fff"
+                  : "#3a3a3c",
+            }}
+          >
+            🚦{" "}
+            {showTraffic
+              ? "Traffic On"
+              : "Traffic Off"}
+          </button>
+
+        </div>
+
+
+        <div
+          style={{
+            marginTop: 12,
+            display: "flex",
+            gap: 7,
+            flexWrap: "wrap",
+          }}
+        >
+
+          <span
+            style={{
+              background:
+                "#e8f8ed",
+              color: "#248a3d",
+              padding:
+                "5px 9px",
+              borderRadius: 999,
+              fontSize: 10,
+              fontWeight: 700,
+            }}
+          >
+            ● {cameraStats.active} Active
+          </span>
+
+          <span
+            style={{
+              background:
+                "#fff4df",
+              color: "#a05a00",
+              padding:
+                "5px 9px",
+              borderRadius: 999,
+              fontSize: 10,
+              fontWeight: 700,
+            }}
+          >
+            ● {cameraStats.pending} Pending
+          </span>
+
+          <span
+            style={{
+              background:
+                "#f2f2f7",
+              color: "#636366",
+              padding:
+                "5px 9px",
+              borderRadius: 999,
+              fontSize: 10,
+              fontWeight: 700,
+            }}
+          >
+            🚦{" "}
+            {trafficSegments.length}{" "}
+            Segments
+          </span>
+
+        </div>
+
+
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 10,
+            color: "#8e8e93",
+          }}
+        >
+          {lastCameraUpdate
+            ? `Cameras updated ${lastCameraUpdate.toLocaleTimeString()}`
+            : "Loading camera data..."}
+        </div>
+
+      </div>
+
+
+      {/* ====================================================
+          MAP CONTROLS
+      ===================================================== */}
+
+      <div
+        style={styles.controlsPanel}
+      >
+
+        {/* FIT */}
+
+        <button
+          type="button"
+          title="Fit all cameras"
+          onClick={() =>
+            setFitTrigger(
+              (value) => value + 1
+            )
+          }
+          style={
+            styles.controlButton
+          }
+        >
+          🎯
+        </button>
+
+
+        {/* REFRESH CAMERAS */}
+
+        <button
+          type="button"
+          title="Refresh cameras"
+          disabled={
+            cameraRefreshing
+          }
+          onClick={() =>
+            loadCameras(true)
+          }
+          style={{
+            ...styles.controlButton,
+            opacity:
+              cameraRefreshing
+                ? 0.55
+                : 1,
+          }}
+        >
+          🔄
+        </button>
+
+
+        {/* TRAFFIC UPDATE */}
+
+        <button
+          type="button"
+          title="Update traffic"
+          disabled={
+            trafficRefreshing
+          }
+          onClick={() =>
+            loadTraffic(true)
+          }
+          style={{
+            ...styles.controlButton,
+            opacity:
+              trafficRefreshing
+                ? 0.55
+                : 1,
+          }}
+        >
+          🚦
+        </button>
+
+
+        {/* MAP STYLE */}
+
+        <button
+          type="button"
+          title="Change map style"
+          onClick={() =>
+            setMapStyle(
+              (value) =>
+                value === "standard"
+                  ? "light"
+                  : "standard"
+            )
+          }
+          style={
+            styles.controlButton
+          }
+        >
+          🗺️
+        </button>
+
+      </div>
+
+
+      {/* ====================================================
+          LOADING
+      ===================================================== */}
+
+      {loading && (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 2000,
+            top: "50%",
+            left: "50%",
+            transform:
+              "translate(-50%, -50%)",
+            ...styles.glass,
+            borderRadius: 16,
+            padding:
+              "15px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          <span>🗺️</span>
+          Loading camera network...
+        </div>
+      )}
+
+
+      {/* ====================================================
+          ERROR
+      ===================================================== */}
+
+      {error && (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 2000,
+            top: 150,
+            left: "50%",
+            transform:
+              "translateX(-50%)",
+            width:
+              "min(450px, calc(100vw - 40px))",
+            background:
+              "rgba(255,255,255,.96)",
+            border:
+              "1px solid rgba(255,59,48,.35)",
+            boxShadow:
+              "0 8px 30px rgba(0,0,0,.15)",
+            borderRadius: 14,
+            padding: 14,
+            color: "#b42318",
+            fontSize: 12,
+          }}
+        >
+
+          <strong>
+            Camera data unavailable
+          </strong>
+
+          <div
+            style={{
+              marginTop: 5,
+            }}
+          >
+            {error}
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              loadCameras(true)
+            }
+            style={{
+              marginTop: 10,
+              border: 0,
+              background:
+                "#007aff",
+              color: "#fff",
+              borderRadius: 9,
+              padding:
+                "7px 12px",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+
+        </div>
+      )}
+
+
+      {/* ====================================================
+          TRAFFIC ERROR
+      ===================================================== */}
+
+      {trafficError &&
+        trafficSegments.length ===
+          0 && (
+          <div
+            style={{
+              position: "absolute",
+              zIndex: 999,
+              bottom: 125,
+              right: 18,
+              maxWidth: 280,
+              background:
+                "rgba(255,255,255,.9)",
+              backdropFilter:
+                "blur(15px)",
+              borderRadius: 12,
+              padding:
+                "8px 11px",
+              fontSize: 10,
+              color: "#8e8e93",
+              boxShadow:
+                "0 4px 15px rgba(0,0,0,.1)",
+            }}
+          >
+            🚦 Live traffic data
+            unavailable
           </div>
         )}
 
-        {/* UPDATE INFORMATION */}
 
+      {/* ====================================================
+          SELECTED CAMERA CARD
+      ===================================================== */}
+
+      {selectedCamera && (
         <div
           style={{
-            marginTop: "10px",
-            paddingTop: "9px",
-            borderTop:
-              "1px solid #e5e7eb",
-            fontSize: "11px",
-            color: "#64748b",
-            lineHeight: "1.5",
+            position: "absolute",
+            zIndex: 1500,
+            top: 155,
+            right: 18,
+            width:
+              "min(320px, calc(100vw - 36px))",
+            ...styles.glass,
+            borderRadius: 17,
+            padding: 15,
           }}
         >
-          <div>
-            {trafficLoading
-              ? "Loading traffic..."
-              : `${trafficSegments.length} traffic segment${
-                  trafficSegments.length ===
-                  1
-                    ? ""
-                    : "s"
-                } loaded`}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent:
+                "space-between",
+              gap: 10,
+            }}
+          >
+
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems:
+                  "center",
+              }}
+            >
+
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background:
+                    "#f2f2f7",
+                  display: "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "center",
+                  fontSize: 20,
+                }}
+              >
+                {getCameraEmoji(
+                  getCameraType(
+                    selectedCamera
+                  )
+                )}
+              </div>
+
+              <div>
+
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 14,
+                  }}
+                >
+                  {getCameraType(
+                    selectedCamera
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    color:
+                      "#8e8e93",
+                    fontSize: 10,
+                    marginTop: 2,
+                  }}
+                >
+                  Camera #
+                  {selectedCamera.id ??
+                    "—"}
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedCamera(
+                  null
+                )
+              }
+              style={{
+                width: 27,
+                height: 27,
+                border: 0,
+                borderRadius:
+                  "50%",
+                background:
+                  "#f2f2f7",
+                cursor:
+                  "pointer",
+                fontSize: 16,
+              }}
+            >
+              ×
+            </button>
+
           </div>
 
-          {lastTrafficUpdate && (
-            <div>
-              Traffic updated{" "}
-              {lastTrafficUpdate.toLocaleTimeString()}
-            </div>
-          )}
 
-          {lastCameraUpdate && (
-            <div>
-              Cameras updated{" "}
-              {lastCameraUpdate.toLocaleTimeString()}
+          <div
+            style={{
+              marginTop: 13,
+              display: "grid",
+              gridTemplateColumns:
+                "1fr 1fr",
+              gap: 8,
+            }}
+          >
+
+            <div
+              style={{
+                padding: 9,
+                borderRadius: 10,
+                background:
+                  "#f7f7f9",
+              }}
+            >
+
+              <div
+                style={{
+                  fontSize: 9,
+                  color:
+                    "#8e8e93",
+                }}
+              >
+                STATUS
+              </div>
+
+              <div
+                style={{
+                  marginTop: 2,
+                  fontWeight: 750,
+                  fontSize: 12,
+                  color:
+                    getStatusColor(
+                      selectedCamera.status
+                    ),
+                }}
+              >
+                {getStatusLabel(
+                  selectedCamera.status
+                )}
+              </div>
+
             </div>
-          )}
+
+
+            <div
+              style={{
+                padding: 9,
+                borderRadius: 10,
+                background:
+                  "#f7f7f9",
+              }}
+            >
+
+              <div
+                style={{
+                  fontSize: 9,
+                  color:
+                    "#8e8e93",
+                }}
+              >
+                VERIFICATION
+              </div>
+
+              <div
+                style={{
+                  marginTop: 2,
+                  fontWeight: 750,
+                  fontSize: 12,
+                  color:
+                    getVerificationColor(
+                      selectedCamera.verification_status
+                    ),
+                  textTransform:
+                    "capitalize",
+                }}
+              >
+                {normalizeVerification(
+                  selectedCamera.verification_status
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div
+            style={{
+              marginTop: 12,
+              fontSize: 12,
+              color: "#3a3a3c",
+              lineHeight: 1.6,
+            }}
+          >
+
+            {selectedCamera.city && (
+              <div>
+                📍{" "}
+                {selectedCamera.city}
+                {selectedCamera.state
+                  ? `, ${selectedCamera.state}`
+                  : ""}
+              </div>
+            )}
+
+            {selectedCamera.road_name && (
+              <div>
+                🛣️{" "}
+                {selectedCamera.road_name}
+              </div>
+            )}
+
+            {selectedCamera.speed_limit !==
+              null &&
+              selectedCamera.speed_limit !==
+                undefined && (
+                <div>
+                  ⚡{" "}
+                  {
+                    selectedCamera.speed_limit
+                  }{" "}
+                  km/h
+                </div>
+              )}
+
+          </div>
+
         </div>
-      </div>
+      )}
+
     </div>
   );
 }
