@@ -1,726 +1,1909 @@
-/* ==========================================================
-   CAMERA MAP PAGE
-========================================================== */
+/* ============================================================
+   ROOT
+   ============================================================ */
 
-.camera-map-page {
-    height: calc(100vh - 80px);
-    display: flex;
-    flex-direction: column;
-    background: #f3f6fb;
-    overflow: hidden;
+.gcm-map-page {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 640px;
+  overflow: hidden;
+
+  background: #eef1f4;
+  color: #111827;
+
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 }
 
-/* ==========================================================
+
+/* ============================================================
    HEADER
-========================================================== */
+   ============================================================ */
 
-.camera-map-page h1 {
-    margin: 0;
-    padding: 18px 25px;
-    background: white;
-    color: #1f2937;
-    font-size: 30px;
-    font-weight: 700;
-    border-bottom: 1px solid #e5e7eb;
+.gcm-map-header {
+  position: absolute;
+  z-index: 1200;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 66px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 22px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  border-bottom: 1px solid #dfe4e8;
+
+  box-shadow:
+    0 2px 12px rgba(15, 23, 42, 0.07);
 }
 
-/* ==========================================================
-   TOOLBAR
-========================================================== */
 
-.map-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    padding: 15px 20px;
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
-    align-items: center;
+.gcm-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  min-width: 0;
 }
 
-.map-toolbar input {
-    flex: 1;
-    min-width: 280px;
-    padding: 12px 15px;
-    font-size: 15px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    outline: none;
+
+.gcm-brand-mark {
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 34px;
+
+  border: 1px solid #111827;
+
+  background: #111827;
+  color: #ffffff;
+
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
-.map-toolbar input:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+
+.gcm-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  min-width: 0;
 }
 
-.map-toolbar select {
-    min-width: 200px;
-    padding: 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
+
+.gcm-brand-copy strong {
+  color: #111827;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+
+  white-space: nowrap;
 }
 
-/* ==========================================================
-   LOCATE BUTTON
-========================================================== */
 
-.locate-btn {
-    padding: 12px 18px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: .25s;
+.gcm-brand-copy span {
+  color: #6b7280;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  letter-spacing: 0.14em;
+
+  white-space: nowrap;
 }
 
-.locate-btn:hover {
-    background: #1d4ed8;
+
+.gcm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 
-.locate-btn:disabled {
-    opacity: .6;
-    cursor: not-allowed;
+
+.gcm-breadcrumb {
+  color: #6b7280;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
 }
 
-/* ==========================================================
-   STATISTICS CARDS
-========================================================== */
 
-.map-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
-    gap: 15px;
-    padding: 15px 20px;
+.gcm-header-refresh {
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid #d9dee3;
+
+  background: #ffffff;
+  color: #111827;
+
+  cursor: pointer;
+
+  font-size: 20px;
+  line-height: 1;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
-.stat-card {
-    background: white;
-    padding: 18px;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,.06);
-    transition: .25s;
+
+.gcm-header-refresh:hover {
+  background: #f3f4f6;
+  border-color: #aeb6bf;
 }
 
-.stat-card:hover {
-    transform: translateY(-3px);
+
+.gcm-header-refresh:active {
+  transform: rotate(90deg);
 }
 
-.stat-card h3 {
-    margin: 0;
-    font-size: 15px;
-    color: #6b7280;
+
+.gcm-header-refresh:disabled {
+  opacity: 0.45;
+  cursor: wait;
 }
 
-.stat-card span {
-    display: block;
-    margin-top: 10px;
-    font-size: 28px;
-    font-weight: 700;
-    color: #2563eb;
+
+/* ============================================================
+   MAP SHELL
+   ============================================================ */
+
+.gcm-map-shell {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  overflow: hidden;
 }
 
-/* ==========================================================
-   STATUS
-========================================================== */
 
-.map-status {
-    padding: 12px;
-    text-align: center;
-    background: white;
-    font-weight: 600;
-    color: #374151;
+.gcm-leaflet-map {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  background: #e7ebee;
+
+  z-index: 1;
 }
 
-.map-status.error {
-    color: #dc2626;
-}
-/* ==========================================================
-   MAIN MAP LAYOUT
-========================================================== */
 
-.map-layout {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-    position: relative;
-}
+/* ============================================================
+   LEAFLET
+   ============================================================ */
 
-/* ==========================================================
-   CAMERA SIDEBAR
-========================================================== */
+.gcm-leaflet-map .leaflet-control-attribution {
+  margin: 0 !important;
 
-.camera-sidebar {
-    width: 340px;
-    background: white;
-    border-right: 1px solid #e5e7eb;
-    padding: 18px;
-    overflow-y: auto;
-    flex-shrink: 0;
+  padding: 3px 7px !important;
+
+  border-top-left-radius: 4px;
+
+  background: rgba(255, 255, 255, 0.88);
+
+  color: #6b7280;
+
+  font-size: 9px;
 }
 
-.camera-sidebar h2 {
-    margin: 0 0 18px;
-    font-size: 22px;
-    color: #1f2937;
+
+.gcm-leaflet-map .leaflet-control-attribution a {
+  color: #374151;
 }
 
-/* ==========================================================
-   CAMERA LIST
-========================================================== */
 
-.camera-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+.gcm-leaflet-map .leaflet-control-container {
+  font-family: inherit;
 }
 
-/* ==========================================================
-   CAMERA ITEM
-========================================================== */
 
-.camera-item {
-    padding: 16px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all .25s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+.gcm-leaflet-map .leaflet-popup-content-wrapper {
+  padding: 0;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 12px 36px rgba(15, 23, 42, 0.2);
 }
 
-.camera-item:hover {
-    background: #eff6ff;
-    border-color: #2563eb;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 18px rgba(37,99,235,.15);
+
+.gcm-leaflet-map .leaflet-popup-content {
+  margin: 0;
+
+  min-width: 280px;
 }
 
-.camera-item.active {
-    background: #dbeafe;
-    border: 2px solid #2563eb;
+
+.gcm-leaflet-map .leaflet-popup-tip {
+  background: #ffffff;
 }
 
-.camera-item h3 {
-    margin: 0 0 10px;
-    color: #2563eb;
-    font-size: 17px;
+
+.gcm-leaflet-map .leaflet-popup-close-button {
+  top: 8px !important;
+  right: 8px !important;
+
+  width: 26px !important;
+  height: 26px !important;
+
+  color: #6b7280 !important;
+
+  font-size: 18px !important;
+
+  z-index: 5;
 }
 
-.camera-item p {
-    margin: 6px 0;
-    font-size: 14px;
-    color: #4b5563;
-    line-height: 1.5;
+
+/* ============================================================
+   ZOOM CONTROLS
+   ============================================================ */
+
+.gcm-map-controls {
+  position: absolute;
+
+  z-index: 900;
+
+  top: 86px;
+  left: 18px;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  border: 1px solid #d7dde2;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.1);
 }
 
-.camera-item strong {
-    color: #111827;
+
+.gcm-map-control {
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+  place-items: center;
+
+  border: 0;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  background: #ffffff;
+  color: #111827;
+
+  cursor: pointer;
+
+  font-size: 22px;
+  font-weight: 500;
+
+  line-height: 1;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
-/* ==========================================================
-   NEAREST CAMERA
-========================================================== */
 
-.nearest-camera {
-    border: 2px solid #16a34a;
-    background: #f0fdf4;
+.gcm-map-control:last-child {
+  border-bottom: 0;
 }
 
-/* ==========================================================
-   DISTANCE BADGE
-========================================================== */
 
-.distance-badge {
-    display: inline-block;
-    margin-top: 10px;
-    padding: 5px 10px;
-    background: #2563eb;
-    color: white;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
+.gcm-map-control:hover {
+  background: #f3f4f6;
 }
 
-/* ==========================================================
-   SCROLLBAR
-========================================================== */
 
-.camera-sidebar::-webkit-scrollbar {
-    width: 8px;
+/* ============================================================
+   MAP BRAND PANEL
+   ============================================================ */
+
+.gcm-map-brand-panel {
+  position: absolute;
+
+  z-index: 800;
+
+  top: 84px;
+  left: 76px;
+
+  padding: 15px 18px;
+
+  background: rgba(255, 255, 255, 0.95);
+
+  border: 1px solid #dfe4e8;
+
+  box-shadow:
+    0 5px 18px rgba(15, 23, 42, 0.08);
 }
 
-.camera-sidebar::-webkit-scrollbar-track {
-    background: #f3f4f6;
+
+.gcm-panel-kicker {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #6b7280;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  letter-spacing: 0.16em;
 }
 
-.camera-sidebar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 999px;
+
+.gcm-map-brand-panel h1 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 17px;
+  font-weight: 800;
+
+  letter-spacing: -0.02em;
 }
 
-.camera-sidebar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-/* ==========================================================
-   MAP
-========================================================== */
 
-.camera-map {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    position: relative;
+.gcm-map-brand-panel p {
+  margin: 4px 0 0;
+
+  color: #6b7280;
+
+  font-size: 10px;
+  font-weight: 500;
 }
 
-.leaflet-container {
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    background: #e5e7eb;
+
+/* ============================================================
+   LIVE COUNTER PANEL
+   ============================================================ */
+
+.gcm-live-counter-panel {
+  position: absolute;
+
+  z-index: 800;
+
+  top: 84px;
+  right: 20px;
+
+  display: flex;
+  align-items: stretch;
+
+  min-height: 52px;
+
+  border: 1px solid #dfe4e8;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  box-shadow:
+    0 5px 18px rgba(15, 23, 42, 0.08);
 }
 
-/* ==========================================================
+
+.gcm-live-counter {
+  min-width: 76px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  padding: 7px 12px;
+
+  border-right: 1px solid #e5e7eb;
+}
+
+
+.gcm-live-counter strong {
+  color: #111827;
+
+  font-size: 18px;
+  font-weight: 800;
+
+  line-height: 1;
+}
+
+
+.gcm-live-counter span {
+  margin-top: 4px;
+
+  color: #6b7280;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+}
+
+
+.gcm-live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 0 13px;
+
+  color: #374151;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+}
+
+
+.gcm-live-indicator span {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #16a34a;
+
+  box-shadow:
+    0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+
+.gcm-updated {
+  display: flex;
+  align-items: center;
+
+  padding: 0 11px;
+
+  color: #9ca3af;
+
+  border-left: 1px solid #e5e7eb;
+
+  font-size: 8px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   CONTROL PANEL
+   ============================================================ */
+
+.gcm-control-panel {
+  position: absolute;
+
+  z-index: 800;
+
+  top: 155px;
+  right: 20px;
+
+  width: 350px;
+
+  padding: 17px;
+
+  background: rgba(255, 255, 255, 0.97);
+
+  border: 1px solid #dfe4e8;
+
+  box-shadow:
+    0 8px 28px rgba(15, 23, 42, 0.11);
+}
+
+
+.gcm-control-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 10px;
+}
+
+
+.gcm-control-heading span {
+  color: #111827;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.14em;
+}
+
+
+.gcm-control-heading small {
+  color: #9ca3af;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+
+/* ============================================================
+   FILTER GRID
+   ============================================================ */
+
+.gcm-filter-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 5px;
+}
+
+
+.gcm-filter-grid button {
+  min-width: 0;
+
+  padding: 8px 5px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+
+  border: 1px solid #e1e5e9;
+
+  background: #f8f9fa;
+  color: #6b7280;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+
+.gcm-filter-grid button:hover {
+  border-color: #b8c0c8;
+
+  background: #ffffff;
+
+  color: #111827;
+}
+
+
+.gcm-filter-grid button.active {
+  border-color: #111827;
+
+  background: #111827;
+
+  color: #ffffff;
+}
+
+
+.gcm-filter-grid button span {
+  font-size: 8px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+.gcm-filter-grid button strong {
+  font-size: 15px;
+  font-weight: 800;
+
+  line-height: 1;
+}
+
+
+/* ============================================================
+   CAMERA SEARCH
+   ============================================================ */
+
+.gcm-search-row {
+  display: flex;
+  align-items: center;
+
+  margin-top: 10px;
+
+  height: 38px;
+
+  border: 1px solid #d9dee3;
+
+  background: #ffffff;
+}
+
+
+.gcm-search-icon {
+  padding-left: 10px;
+
+  color: #9ca3af;
+
+  font-size: 17px;
+}
+
+
+.gcm-search-row input {
+  min-width: 0;
+  flex: 1;
+
+  height: 100%;
+
+  padding: 0 9px;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: #111827;
+
+  font-family: inherit;
+
+  font-size: 10px;
+}
+
+
+.gcm-search-row input::placeholder {
+  color: #9ca3af;
+}
+
+
+.gcm-search-row button {
+  align-self: stretch;
+
+  padding: 0 12px;
+
+  border: 0;
+
+  border-left: 1px solid #d9dee3;
+
+  background: #111827;
+  color: #ffffff;
+
+  cursor: pointer;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+
+.gcm-search-row button:hover {
+  background: #374151;
+}
+
+
+.gcm-search-row button:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+}
+
+
+/* ============================================================
+   LOCATION BUTTON
+   ============================================================ */
+
+.gcm-location-button {
+  width: 100%;
+
+  height: 36px;
+
+  margin-top: 8px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  border: 1px solid #d9dee3;
+
+  background: #ffffff;
+  color: #374151;
+
+  cursor: pointer;
+
+  font-family: inherit;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+
+.gcm-location-button:hover {
+  background: #f8f9fa;
+
+  border-color: #b8c0c8;
+}
+
+
+.gcm-location-button span {
+  font-size: 16px;
+}
+
+
+.gcm-location-button:disabled {
+  opacity: 0.55;
+
+  cursor: wait;
+}
+
+
+/* ============================================================
+   ROUTE PLANNER
+   ============================================================ */
+
+.gcm-route-planner {
+  margin-top: 15px;
+
+  padding-top: 14px;
+
+  border-top: 1px solid #e5e7eb;
+}
+
+
+.gcm-section-label {
+  color: #6b7280;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  letter-spacing: 0.14em;
+}
+
+
+.gcm-route-title {
+  margin-top: 4px;
+
+  color: #111827;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+
+.gcm-route-search {
+  display: flex;
+  align-items: center;
+
+  margin-top: 9px;
+
+  height: 38px;
+
+  border: 1px solid #d9dee3;
+
+  background: #ffffff;
+}
+
+
+.gcm-route-search > span {
+  padding-left: 9px;
+
+  color: #9ca3af;
+
+  font-size: 16px;
+}
+
+
+.gcm-route-search input {
+  min-width: 0;
+  flex: 1;
+
+  height: 100%;
+
+  padding: 0 8px;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: #111827;
+
+  font-family: inherit;
+
+  font-size: 10px;
+}
+
+
+.gcm-route-search input::placeholder {
+  color: #9ca3af;
+}
+
+
+.gcm-route-search button {
+  align-self: stretch;
+
+  padding: 0 11px;
+
+  border: 0;
+
+  border-left: 1px solid #d9dee3;
+
+  background: #ffffff;
+  color: #111827;
+
+  cursor: pointer;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+
+.gcm-route-search button:hover {
+  background: #f3f4f6;
+}
+
+
+.gcm-route-search button:disabled {
+  opacity: 0.4;
+
+  cursor: not-allowed;
+}
+
+
+.gcm-route-button {
+  width: 100%;
+
+  height: 37px;
+
+  margin-top: 7px;
+
+  border: 1px solid #111827;
+
+  background: #111827;
+  color: #ffffff;
+
+  cursor: pointer;
+
+  font-family: inherit;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+
+.gcm-route-button:hover:not(:disabled) {
+  background: #374151;
+}
+
+
+.gcm-route-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+
+.gcm-route-button:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+}
+
+
+.gcm-clear-route {
+  width: 100%;
+
+  margin-top: 6px;
+
+  padding: 5px;
+
+  border: 0;
+
+  background: transparent;
+  color: #6b7280;
+
+  cursor: pointer;
+
+  font-family: inherit;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+
+.gcm-clear-route:hover {
+  color: #111827;
+}
+
+
+/* ============================================================
+   ROUTE RESULT
+   ============================================================ */
+
+.gcm-route-result {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  margin-top: 8px;
+
+  padding: 9px;
+
+  border: 1px solid #dfe4e8;
+
+  background: #f8fafc;
+}
+
+
+.gcm-route-dot {
+  width: 8px;
+  height: 8px;
+
+  flex: 0 0 8px;
+
+  border-radius: 50%;
+
+  background: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+
+.gcm-route-result div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+
+.gcm-route-result strong {
+  color: #111827;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+
+.gcm-route-result small {
+  color: #6b7280;
+
+  font-size: 8px;
+}
+
+
+/* ============================================================
+   NETWORK STATUS
+   ============================================================ */
+
+.gcm-network-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-top: 13px;
+  padding-top: 11px;
+
+  border-top: 1px solid #e5e7eb;
+
+  color: #374151;
+
+  font-size: 8px;
+  font-weight: 800;
+}
+
+
+.gcm-network-status-dot {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #16a34a;
+}
+
+
+.gcm-network-status-count {
+  margin-left: auto;
+
+  color: #9ca3af;
+
+  font-weight: 600;
+}
+
+
+/* ============================================================
+   LEGEND
+   ============================================================ */
+
+.gcm-map-legend {
+  position: absolute;
+
+  z-index: 800;
+
+  bottom: 30px;
+  left: 20px;
+
+  min-width: 160px;
+
+  padding: 12px 13px;
+
+  background: rgba(255, 255, 255, 0.95);
+
+  border: 1px solid #dfe4e8;
+
+  box-shadow:
+    0 5px 18px rgba(15, 23, 42, 0.08);
+}
+
+
+.gcm-legend-title {
+  margin-bottom: 8px;
+
+  color: #6b7280;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  letter-spacing: 0.13em;
+}
+
+
+.gcm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-top: 7px;
+
+  color: #374151;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.gcm-legend-marker {
+  width: 22px;
+  height: 22px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+
+.gcm-legend-marker.speed {
+  background: #2563eb;
+}
+
+
+.gcm-legend-marker.red {
+  background: #dc2626;
+}
+
+
+.gcm-legend-marker.other {
+  background: #475569;
+}
+
+
+/* ============================================================
+   CAMERA MARKERS
+   ============================================================ */
+
+.gcm-camera-marker-wrapper {
+  background: transparent !important;
+
+  border: 0 !important;
+}
+
+
+.gcm-camera-marker {
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px solid #ffffff;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+
+  font-size: 9px;
+  font-weight: 900;
+
+  box-shadow:
+    0 2px 7px rgba(15, 23, 42, 0.35);
+
+  transition:
+    transform 0.15s ease;
+}
+
+
+.gcm-camera-marker:hover {
+  transform: scale(1.12);
+}
+
+
+.gcm-marker-speed {
+  background: #2563eb;
+}
+
+
+.gcm-marker-red {
+  background: #dc2626;
+}
+
+
+.gcm-marker-other {
+  background: #475569;
+}
+
+
+/* ============================================================
+   CLUSTERS
+   ============================================================ */
+
+.gcm-leaflet-map .marker-cluster {
+  background: rgba(17, 24, 39, 0.14);
+
+  border-radius: 50%;
+}
+
+
+.gcm-leaflet-map .marker-cluster div {
+  width: 32px;
+  height: 32px;
+
+  margin: 5px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: #111827;
+  color: #ffffff;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  box-shadow:
+    0 3px 10px rgba(15, 23, 42, 0.25);
+}
+
+
+.gcm-leaflet-map .marker-cluster-small,
+.gcm-leaflet-map .marker-cluster-medium,
+.gcm-leaflet-map .marker-cluster-large {
+  background: rgba(17, 24, 39, 0.12);
+}
+
+
+/* ============================================================
    POPUP
-========================================================== */
+   ============================================================ */
 
-.camera-popup {
-    min-width: 250px;
-    font-size: 14px;
-    line-height: 1.6;
+.gcm-popup {
+  padding: 16px;
+
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
 }
 
-.camera-popup h3 {
-    margin: 0 0 12px;
-    color: #2563eb;
-    font-size: 18px;
+
+.gcm-popup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding-right: 24px;
 }
 
-.camera-popup p {
-    margin: 6px 0;
-    color: #374151;
+
+.gcm-popup-eyebrow {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #9ca3af;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  letter-spacing: 0.14em;
 }
 
-.camera-popup strong {
-    color: #111827;
+
+.gcm-popup h3 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 14px;
+  font-weight: 800;
 }
 
-.leaflet-popup-content-wrapper {
-    border-radius: 12px;
+
+.gcm-popup-type {
+  width: 28px;
+  height: 28px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 28px;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+
+  font-size: 9px;
+  font-weight: 900;
 }
 
-.leaflet-popup-content {
-    margin: 15px;
+
+.gcm-popup-type-speed {
+  background: #2563eb;
 }
 
-/* ==========================================================
-   GOOGLE MAPS BUTTON
-========================================================== */
 
-.navigate-btn {
-    display: inline-block;
-    margin-top: 12px;
-    padding: 10px 16px;
-    background: #2563eb;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all .25s ease;
+.gcm-popup-type-red {
+  background: #dc2626;
 }
 
-.navigate-btn:hover {
-    background: #1d4ed8;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px rgba(37,99,235,.25);
+
+.gcm-popup-type-other {
+  background: #475569;
 }
 
-/* ==========================================================
-   ROUTE INFO PANEL
-========================================================== */
 
-.route-info {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    min-width: 220px;
-    background: white;
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 8px 20px rgba(0,0,0,.15);
+.gcm-popup-status-row {
+  display: flex;
+  gap: 5px;
+
+  margin-top: 10px;
 }
 
-.route-info h3 {
-    margin: 0 0 10px;
-    color: #2563eb;
-    font-size: 18px;
+
+.gcm-status-badge,
+.gcm-verification-badge {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 4px 6px;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  letter-spacing: 0.04em;
 }
 
-.route-info p {
-    margin: 5px 0;
-    color: #374151;
-    font-size: 14px;
+
+.gcm-status-active {
+  background: #ecfdf3;
+  color: #15803d;
 }
 
-/* ==========================================================
-   LEAFLET ROUTING MACHINE
-========================================================== */
 
-/* Hide the default instruction panel */
-
-.leaflet-routing-container {
-    display: none !important;
+.gcm-status-inactive {
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
-/* Keep only the route line */
 
-.leaflet-routing-alt {
-    display: none;
+.gcm-status-maintenance {
+  background: #fff7ed;
+  color: #c2410c;
 }
 
-/* ==========================================================
-   MARKERS
-========================================================== */
 
-.leaflet-marker-icon {
-    transition: transform .2s ease;
+.gcm-status-unknown {
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
-.leaflet-marker-icon:hover {
-    transform: scale(1.15);
+
+.gcm-verification-verified {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
-/* ==========================================================
-   RESPONSIVE
-========================================================== */
+
+.gcm-verification-pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+
+.gcm-verification-rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+
+.gcm-popup-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 9px;
+
+  margin-top: 13px;
+}
+
+
+.gcm-popup-field {
+  min-width: 0;
+}
+
+
+.gcm-popup-field-wide {
+  grid-column: 1 / -1;
+}
+
+
+.gcm-popup-field span {
+  display: block;
+
+  margin-bottom: 2px;
+
+  color: #9ca3af;
+
+  font-size: 6px;
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+}
+
+
+.gcm-popup-field strong {
+  display: block;
+
+  color: #374151;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  line-height: 1.4;
+
+  overflow-wrap: anywhere;
+}
+
+
+.gcm-route-match {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  margin-top: 12px;
+  padding: 7px 8px;
+
+  background: #eff6ff;
+
+  color: #1d4ed8;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+
+.gcm-route-match span {
+  font-size: 8px;
+}
+
+
+.gcm-source-link {
+  display: inline-block;
+
+  margin-top: 11px;
+
+  color: #2563eb;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  text-decoration: none;
+}
+
+
+.gcm-source-link:hover {
+  text-decoration: underline;
+}
+
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+.gcm-map-loading {
+  position: absolute;
+
+  z-index: 1000;
+
+  left: 50%;
+  bottom: 30px;
+
+  transform: translateX(-50%);
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 9px 13px;
+
+  border: 1px solid #dfe4e8;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  box-shadow:
+    0 5px 18px rgba(15, 23, 42, 0.1);
+
+  color: #374151;
+
+  font-size: 8px;
+  font-weight: 800;
+}
+
+
+.gcm-spinner {
+  width: 13px;
+  height: 13px;
+
+  border: 2px solid #d9dee3;
+  border-top-color: #111827;
+
+  border-radius: 50%;
+
+  animation:
+    gcm-spin 0.75s linear infinite;
+}
+
+
+@keyframes gcm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* ============================================================
+   ERROR
+   ============================================================ */
+
+.gcm-map-error {
+  position: absolute;
+
+  z-index: 1100;
+
+  top: 50%;
+  left: 50%;
+
+  transform: translate(-50%, -50%);
+
+  width: min(360px, calc(100vw - 40px));
+
+  padding: 18px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  border: 1px solid #fecaca;
+
+  background: rgba(255, 255, 255, 0.98);
+
+  box-shadow:
+    0 12px 35px rgba(15, 23, 42, 0.15);
+}
+
+
+.gcm-map-error strong {
+  color: #991b1b;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+
+.gcm-map-error span {
+  color: #6b7280;
+
+  font-size: 9px;
+
+  line-height: 1.5;
+}
+
+
+.gcm-map-error button {
+  align-self: flex-start;
+
+  margin-top: 6px;
+
+  padding: 7px 12px;
+
+  border: 0;
+
+  background: #111827;
+  color: #ffffff;
+
+  cursor: pointer;
+
+  font-size: 8px;
+  font-weight: 800;
+}
+
+
+/* ============================================================
+   INLINE ERROR
+   ============================================================ */
+
+.gcm-inline-error {
+  margin-top: 6px;
+
+  padding: 7px 8px;
+
+  border: 1px solid #fecaca;
+
+  background: #fef2f2;
+
+  color: #991b1b;
+
+  font-size: 8px;
+
+  line-height: 1.4;
+}
+
+
+/* ============================================================
+   ROUTE LINE
+   ============================================================ */
+
+.gcm-leaflet-map .gcm-route-line {
+  stroke: #2563eb;
+
+  filter:
+    drop-shadow(
+      0 2px 3px rgba(37, 99, 235, 0.25)
+    );
+}
+
+
+.gcm-leaflet-map .gcm-route-line-core {
+  stroke: #ffffff;
+}
+
+
+/* ============================================================
+   RESPONSIVE — TABLET
+   ============================================================ */
 
 @media (max-width: 900px) {
 
-    .map-layout {
-        flex-direction: column;
-    }
+  .gcm-control-panel {
+    width: 320px;
+  }
 
-    .camera-sidebar {
-        width: 100%;
-        max-height: 260px;
-        border-right: none;
-        border-bottom: 1px solid #e5e7eb;
-    }
+  .gcm-map-brand-panel {
+    left: 70px;
+  }
 
-    .route-info {
-        left: 15px;
-        right: 15px;
-        top: auto;
-        bottom: 15px;
-        min-width: auto;
-    }
+  .gcm-live-counter-panel {
+    right: 14px;
+  }
 
-}
+  .gcm-live-counter {
+    min-width: 65px;
+  }
 
-@media (max-width: 768px) {
-
-    .camera-map-page h1 {
-        font-size: 24px;
-        padding: 15px;
-    }
-
-    .map-toolbar {
-        flex-direction: column;
-    }
-
-    .map-toolbar input,
-    .map-toolbar select,
-    .locate-btn {
-        width: 100%;
-    }
-
-    .map-stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .camera-sidebar {
-        max-height: 220px;
-    }
-
-    .route-info {
-        font-size: 13px;
-    }
-
-}
-/* ==========================================================
-   PART 4 - ADVANCED MAP FEATURES
-========================================================== */
-
-
-/* ==========================================================
-   USER LOCATION MARKER EFFECT
-========================================================== */
-
-.user-location-marker {
-
-    animation: pulse-location 2s infinite;
-
+  .gcm-updated {
+    display: none;
+  }
 }
 
 
-@keyframes pulse-location {
+/* ============================================================
+   RESPONSIVE — MOBILE
+   ============================================================ */
 
-    0% {
+@media (max-width: 700px) {
 
-        transform: scale(1);
-
-        opacity:1;
-
-    }
-
-
-    50% {
-
-        transform: scale(1.3);
-
-        opacity:.6;
-
-    }
+  .gcm-map-page {
+    min-height: 600px;
+  }
 
 
-    100% {
+  .gcm-map-header {
+    height: 56px;
 
-        transform: scale(1);
+    padding: 0 12px;
+  }
 
-        opacity:1;
 
-    }
+  .gcm-brand-mark {
+    width: 30px;
+    height: 30px;
 
+    flex-basis: 30px;
+  }
+
+
+  .gcm-brand-copy strong {
+    font-size: 10px;
+  }
+
+
+  .gcm-brand-copy span {
+    display: none;
+  }
+
+
+  .gcm-breadcrumb {
+    display: none;
+  }
+
+
+  .gcm-header-refresh {
+    width: 30px;
+    height: 30px;
+  }
+
+
+  .gcm-map-controls {
+    top: 70px;
+    left: 10px;
+  }
+
+
+  .gcm-map-brand-panel {
+    top: 70px;
+    left: 58px;
+
+    max-width: calc(100vw - 70px);
+
+    padding: 10px 12px;
+  }
+
+
+  .gcm-map-brand-panel h1 {
+    font-size: 14px;
+  }
+
+
+  .gcm-map-brand-panel p {
+    font-size: 8px;
+  }
+
+
+  .gcm-panel-kicker {
+    font-size: 6px;
+  }
+
+
+  .gcm-live-counter-panel {
+    top: 128px;
+    left: 10px;
+    right: 10px;
+
+    justify-content: space-between;
+
+    min-height: 45px;
+  }
+
+
+  .gcm-live-counter {
+    flex: 1;
+
+    min-width: 0;
+
+    padding: 5px 8px;
+  }
+
+
+  .gcm-live-counter strong {
+    font-size: 15px;
+  }
+
+
+  .gcm-live-counter span {
+    font-size: 6px;
+  }
+
+
+  .gcm-live-indicator {
+    padding: 0 8px;
+  }
+
+
+  .gcm-control-panel {
+    top: auto;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+
+    width: auto;
+
+    max-height: 47vh;
+
+    overflow-y: auto;
+
+    padding: 12px;
+
+    box-shadow:
+      0 8px 28px rgba(15, 23, 42, 0.18);
+  }
+
+
+  .gcm-filter-grid {
+    gap: 4px;
+  }
+
+
+  .gcm-filter-grid button {
+    padding: 7px 3px;
+  }
+
+
+  .gcm-filter-grid button span {
+    font-size: 7px;
+  }
+
+
+  .gcm-filter-grid button strong {
+    font-size: 13px;
+  }
+
+
+  .gcm-location-button {
+    height: 34px;
+  }
+
+
+  .gcm-route-planner {
+    margin-top: 11px;
+    padding-top: 11px;
+  }
+
+
+  .gcm-route-title {
+    font-size: 11px;
+  }
+
+
+  .gcm-map-legend {
+    display: none;
+  }
+
+
+  .gcm-network-status {
+    margin-top: 9px;
+    padding-top: 8px;
+  }
+
+
+  .gcm-map-loading {
+    bottom: calc(47vh + 20px);
+
+    max-width: calc(100vw - 30px);
+
+    white-space: nowrap;
+  }
+
+
+  .gcm-map-error {
+    top: 42%;
+  }
 }
 
 
+/* ============================================================
+   SMALL MOBILE
+   ============================================================ */
 
-/* ==========================================================
-   SELECTED CAMERA ROUTE CARD
-========================================================== */
+@media (max-width: 420px) {
+
+  .gcm-live-counter-panel {
+    top: 128px;
+  }
 
 
-.selected-route-card {
+  .gcm-live-indicator {
+    display: none;
+  }
 
-    background:white;
 
-    border-radius:12px;
+  .gcm-control-panel {
+    max-height: 50vh;
+  }
 
-    padding:15px;
 
-    box-shadow:0 8px 20px rgba(0,0,0,.15);
+  .gcm-filter-grid button span {
+    font-size: 6px;
+  }
 
-    border-left:5px solid #2563eb;
 
+  .gcm-filter-grid button strong {
+    font-size: 12px;
+  }
+
+
+  .gcm-search-row,
+  .gcm-route-search {
+    height: 35px;
+  }
+
+
+  .gcm-control-heading span {
+    font-size: 8px;
+  }
 }
 
 
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
 
-.selected-route-card h3 {
-
-    margin:0 0 10px;
-
-    color:#2563eb;
-
+.gcm-map-page button:focus-visible,
+.gcm-map-page input:focus-visible,
+.gcm-map-page a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 
-
-.selected-route-card p {
-
-    margin:5px 0;
-
-    color:#374151;
-
-}
-
-
-
-/* ==========================================================
-   TRAVEL TIME BADGE
-========================================================== */
-
-
-.travel-time {
-
-    display:inline-flex;
-
-    align-items:center;
-
-    gap:6px;
-
-    margin-top:10px;
-
-    padding:6px 12px;
-
-    background:#dcfce7;
-
-    color:#166534;
-
-    border-radius:20px;
-
-    font-size:13px;
-
-    font-weight:600;
-
-}
-
-
-
-/* ==========================================================
-   ROUTE DISTANCE BADGE
-========================================================== */
-
-
-.route-distance {
-
-    display:inline-flex;
-
-    align-items:center;
-
-    gap:6px;
-
-    margin-top:8px;
-
-    padding:6px 12px;
-
-    background:#dbeafe;
-
-    color:#1d4ed8;
-
-    border-radius:20px;
-
-    font-size:13px;
-
-    font-weight:600;
-
-}
-
-
-
-/* ==========================================================
-   MAP LEGEND
-========================================================== */
-
-
-.map-legend {
-
-    position:absolute;
-
-    bottom:20px;
-
-    left:20px;
-
-    z-index:1000;
-
-    background:white;
-
-    padding:15px;
-
-    border-radius:12px;
-
-    box-shadow:0 8px 20px rgba(0,0,0,.15);
-
-}
-
-
-
-.map-legend h4 {
-
-    margin:0 0 10px;
-
-    font-size:16px;
-
-}
-
-
-
-.map-legend p {
-
-    margin:8px 0;
-
-    font-size:14px;
-
-}
-
-
-
-.legend-dot {
-
-    display:inline-block;
-
-    width:12px;
-
-    height:12px;
-
-    border-radius:50%;
-
-    margin-right:8px;
-
-}
-
-
-
-.legend-dot.verified {
-
-    background:#16a34a;
-
-}
-
-
-
-.legend-dot.pending {
-
-    background:#f59e0b;
-
-}
-
-
-
-.legend-dot.rejected {
-
-    background:#dc2626;
-
-}
-/* ==========================================================
-   VERIFICATION COLORS
-========================================================== */
-
-.legend-dot.verified {
-
-    background:#16a34a;
-
-}
-
-
-.legend-dot.pending {
-
-    background:#facc15;
-
-}
-
-
-.legend-dot.rejected {
-
-    background:#dc2626;
-
-}.leaflet-routing-container {
-
-    display:none;
-
-}
-
-
-.leaflet-routing-line {
-
-    opacity:1 !important;
-
+/* ============================================================
+   REDUCE MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .gcm-camera-marker,
+  .gcm-header-refresh,
+  .gcm-route-button,
+  .gcm-filter-grid button,
+  .gcm-location-button {
+    transition: none;
+  }
+
+  .gcm-spinner {
+    animation: none;
+  }
 }

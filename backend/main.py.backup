@@ -1,0 +1,1590 @@
+import os
+import logging
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Any
+
+from dotenv import load_dotenv
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+
+# ============================================================
+# ENVIRONMENT CONFIGURATION
+# ============================================================
+
+# Project root:
+# GlobalCameraMap/
+# ├── .env
+# ├── backend/
+# │   └── main.py
+#
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BASE_DIR / ".env"
+
+# IMPORTANT:
+# Load .env BEFORE reading any DB_* environment variables.
+load_dotenv(ENV_FILE, override=True)
+
+
+# ============================================================
+# LOGGING
+# ============================================================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
+
+logger = logging.getLogger("global-camera-map")
+
+
+# ============================================================
+# DATABASE CONFIGURATION
+# ============================================================
+
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_PORT = int(os.getenv("DB_PORT", "5432"))
+DB_NAME = os.getenv("DB_NAME", "global_camera")
+DB_USER = os.getenv("DB_USER", "camera_admin")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+
+logger.info(
+    "Database configuration: host=%s port=%s db=%s user=%s",
+    DB_HOST,
+    DB_PORT,
+    DB_NAME,
+    DB_USER,
+)
+
+
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
+
+app = FastAPI(
+    title="Global Camera Map API",
+    description="India Traffic Camera Mapping API",
+    version="1.0.0",
+)
+
+
+# ============================================================
+# CORS
+# ============================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================
+# DATABASE CONNECTION
+# ============================================================
+
+def get_db_connection():
+    """
+    Create a PostgreSQL connection using credentials from .env.
+    """
+
+    # Reload .env in case the process was started before .env changed.
+    load_dotenv(ENV_FILE, override=True)
+
+    password = os.getenv("DB_PASSWORD", "")
+
+    if not password:
+        logger.error("DB_PASSWORD is empty. PostgreSQL password is required.")
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to connect to database: DB_PASSWORD is empty",
+        )
+
+    try:
+        connection = psycopg2.connect(
+            host=os.getenv("DB_HOST", "127.0.0.1"),
+            port=int(os.getenv("DB_PORT", "5432")),
+            database=os.getenv("DB_NAME", "global_camera"),
+            user=os.getenv("DB_USER", "camera_admin"),
+            password=password,
+            connect_timeout=5,
+        )
+
+        return connection
+
+    except psycopg2.Error as exc:
+        logger.error("Database connection failed: %s", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to connect to database",
+        )
+
+
+# ============================================================
+# PYDANTIC MODELS
+# ============================================================
+
+class CameraCreate(BaseModel):
+    latitude: float
+    longitude: float
+
+    country: str = "India"
+    city: Optional[str] = None
+    state: Optional[str] = None
+    road_name: Optional[str] = None
+
+    camera_type: Optional[str] = "Traffic Camera"
+    enforcement_type: Optional[str] = None
+
+    speed_limit: Optional[int] = None
+
+    status: Optional[str] = "pending"
+    verification_status: Optional[str] = "pending"
+
+    source: Optional[str] = None
+    source_url: Optional[str] = None
+    last_verified: Optional[datetime] = None
+
+
+class CameraUpdate(BaseModel):
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+    country: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    road_name: Optional[str] = None
+
+    camera_type: Optional[str] = None
+    enforcement_type: Optional[str] = None
+
+    speed_limit: Optional[int] = None
+
+    status: Optional[str] = None
+    verification_status: Optional[str] = None
+
+    source: Optional[str] = None
+    source_url: Optional[str] = None
+    last_verified: Optional[datetime] = None
+
+
+class CameraReport(BaseModel):
+    latitude: float
+    longitude: float
+
+    city: Optional[str] = None
+    state: Optional[str] = None
+    road_name: Optional[str] = None
+
+    camera_type: Optional[str] = None
+    description: Optional[str] = None
+
+    source: Optional[str] = None
+    source_url: Optional[str] = None
+
+
+# ============================================================
+# STARTUP / SHUTDOWN
+# ============================================================
+
+@app.on_event("startup")
+def startup_event():
+    logger.info("Starting Global Camera Map API")
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+
+        connection.close()
+
+        logger.info("Database connection successful")
+
+    except Exception as exc:
+        logger.error(
+            "Application started but database is unavailable: %s",
+            exc,
+        )
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    logger.info("Shutting down Global Camera Map API")
+
+
+# ============================================================
+# ROOT
+# ============================================================
+
+@app.get("/")
+def root():
+    return {
+        "name": "Global Camera Map API",
+        "version": "1.0.0",
+        "status": "running",
+        "database": DB_NAME,
+        "documentation": "/docs",
+    }
+
+
+# ============================================================
+# HEALTH CHECK
+# ============================================================
+
+@app.get("/health")
+def health_check():
+    """
+    Check whether the API and PostgreSQL database are available.
+    """
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+
+        connection.close()
+
+        return {
+            "status": "healthy",
+            "database": "connected",
+        }
+
+    except HTTPException:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": "Unable to connect to database",
+        }
+
+    except Exception as exc:
+        logger.error("Health check failed: %s", exc)
+
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(exc),
+        }
+
+
+# ============================================================
+# DATABASE STATUS
+# ============================================================
+
+@app.get("/api/database/status")
+def database_status():
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute("SELECT current_database() AS database")
+            database = cursor.fetchone()
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS count
+                FROM cameras
+                """
+            )
+
+            camera_count = cursor.fetchone()
+
+        connection.close()
+
+        return {
+            "status": "connected",
+            "database": database["database"],
+            "camera_count": camera_count["count"],
+        }
+
+    except Exception as exc:
+        logger.error("Database status failed: %s", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve database status",
+        )
+
+
+# ============================================================
+# GET ALL CAMERAS
+# ============================================================
+
+@app.get("/api/cameras")
+def get_cameras(
+    city: Optional[str] = Query(default=None),
+    state: Optional[str] = Query(default=None),
+    camera_type: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    verification_status: Optional[str] = Query(default=None),
+    limit: int = Query(default=5000, ge=1, le=50000),
+):
+    """
+    Return cameras from PostgreSQL.
+
+    Supports optional filters:
+        ?city=Chandigarh
+        ?state=Himachal Pradesh
+        ?camera_type=Speed Camera
+        ?status=active
+        ?verification_status=verified
+    """
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        query = """
+            SELECT
+                id,
+                latitude,
+                longitude,
+                country,
+                city,
+                state,
+                road_name,
+                camera_type,
+                enforcement_type,
+                speed_limit,
+                status,
+                verification_status,
+                source,
+                source_url,
+                last_verified,
+                created_at,
+                updated_at
+            FROM cameras
+            WHERE 1=1
+        """
+
+        parameters = []
+
+        if city:
+            query += " AND LOWER(city) = LOWER(%s)"
+            parameters.append(city)
+
+        if state:
+            query += " AND LOWER(state) = LOWER(%s)"
+            parameters.append(state)
+
+        if camera_type:
+            query += " AND LOWER(camera_type) = LOWER(%s)"
+            parameters.append(camera_type)
+
+        if status:
+            query += " AND LOWER(status) = LOWER(%s)"
+            parameters.append(status)
+
+        if verification_status:
+            query += " AND LOWER(verification_status) = LOWER(%s)"
+            parameters.append(verification_status)
+
+        query += """
+            ORDER BY id ASC
+            LIMIT %s
+        """
+
+        parameters.append(limit)
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query, parameters)
+            cameras = cursor.fetchall()
+
+        return {
+            "count": len(cameras),
+            "cameras": cameras,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        logger.error("Failed to retrieve cameras: %s", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve cameras",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# GET SINGLE CAMERA
+# ============================================================
+
+@app.get("/api/cameras/{camera_id}")
+def get_camera(camera_id: int):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    latitude,
+                    longitude,
+                    country,
+                    city,
+                    state,
+                    road_name,
+                    camera_type,
+                    enforcement_type,
+                    speed_limit,
+                    status,
+                    verification_status,
+                    source,
+                    source_url,
+                    last_verified,
+                    created_at,
+                    updated_at
+                FROM cameras
+                WHERE id = %s
+                """,
+                (camera_id,),
+            )
+
+            camera = cursor.fetchone()
+
+        if not camera:
+            raise HTTPException(
+                status_code=404,
+                detail="Camera not found",
+            )
+
+        return camera
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        logger.error("Failed to retrieve camera %s: %s", camera_id, exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve camera",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# CREATE CAMERA
+# ============================================================
+
+@app.post("/api/cameras")
+def create_camera(camera: CameraCreate):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                INSERT INTO cameras (
+                    latitude,
+                    longitude,
+                    location,
+                    country,
+                    city,
+                    state,
+                    road_name,
+                    camera_type,
+                    enforcement_type,
+                    speed_limit,
+                    status,
+                    verification_status,
+                    source,
+                    source_url,
+                    last_verified
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    ST_SetSRID(
+                        ST_MakePoint(%s, %s),
+                        4326
+                    )::geography,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s
+                )
+                RETURNING
+                    id,
+                    latitude,
+                    longitude,
+                    country,
+                    city,
+                    state,
+                    road_name,
+                    camera_type,
+                    enforcement_type,
+                    speed_limit,
+                    status,
+                    verification_status,
+                    source,
+                    source_url,
+                    last_verified,
+                    created_at,
+                    updated_at
+                """,
+                (
+                    camera.latitude,
+                    camera.longitude,
+                    camera.longitude,
+                    camera.latitude,
+                    camera.country,
+                    camera.city,
+                    camera.state,
+                    camera.road_name,
+                    camera.camera_type,
+                    camera.enforcement_type,
+                    camera.speed_limit,
+                    camera.status,
+                    camera.verification_status,
+                    camera.source,
+                    camera.source_url,
+                    camera.last_verified,
+                ),
+            )
+
+            new_camera = cursor.fetchone()
+
+        connection.commit()
+
+        return new_camera
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.error("Failed to create camera: %s", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create camera",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# UPDATE CAMERA
+# ============================================================
+
+@app.put("/api/cameras/{camera_id}")
+def update_camera(
+    camera_id: int,
+    camera: CameraUpdate,
+):
+
+    connection = None
+
+    try:
+        update_data = camera.model_dump(
+            exclude_unset=True,
+            exclude_none=True,
+        )
+
+        if not update_data:
+            raise HTTPException(
+                status_code=400,
+                detail="No fields provided for update",
+            )
+
+        connection = get_db_connection()
+
+        allowed_fields = {
+            "latitude",
+            "longitude",
+            "country",
+            "city",
+            "state",
+            "road_name",
+            "camera_type",
+            "enforcement_type",
+            "speed_limit",
+            "status",
+            "verification_status",
+            "source",
+            "source_url",
+            "last_verified",
+        }
+
+        fields = []
+        values = []
+
+        for field, value in update_data.items():
+
+            if field not in allowed_fields:
+                continue
+
+            fields.append(f"{field} = %s")
+            values.append(value)
+
+        if "latitude" in update_data or "longitude" in update_data:
+
+            with connection.cursor() as cursor:
+
+                cursor.execute(
+                    """
+                    SELECT latitude, longitude
+                    FROM cameras
+                    WHERE id = %s
+                    """,
+                    (camera_id,),
+                )
+
+                existing = cursor.fetchone()
+
+            if not existing:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Camera not found",
+                )
+
+            latitude = update_data.get(
+                "latitude",
+                existing[0],
+            )
+
+            longitude = update_data.get(
+                "longitude",
+                existing[1],
+            )
+
+            fields.append(
+                """
+                location = ST_SetSRID(
+                    ST_MakePoint(%s, %s),
+                    4326
+                )::geography
+                """
+            )
+
+            values.extend([longitude, latitude])
+
+        fields.append("updated_at = NOW()")
+
+        values.append(camera_id)
+
+        query = f"""
+            UPDATE cameras
+            SET {", ".join(fields)}
+            WHERE id = %s
+            RETURNING
+                id,
+                latitude,
+                longitude,
+                country,
+                city,
+                state,
+                road_name,
+                camera_type,
+                enforcement_type,
+                speed_limit,
+                status,
+                verification_status,
+                source,
+                source_url,
+                last_verified,
+                created_at,
+                updated_at
+        """
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query, values)
+            updated_camera = cursor.fetchone()
+
+        if not updated_camera:
+            connection.rollback()
+
+            raise HTTPException(
+                status_code=404,
+                detail="Camera not found",
+            )
+
+        connection.commit()
+
+        return updated_camera
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.error("Failed to update camera %s: %s", camera_id, exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to update camera",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# DELETE CAMERA
+# ============================================================
+
+@app.delete("/api/cameras/{camera_id}")
+def delete_camera(camera_id: int):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                DELETE FROM cameras
+                WHERE id = %s
+                RETURNING id
+                """,
+                (camera_id,),
+            )
+
+            deleted = cursor.fetchone()
+
+        if not deleted:
+            connection.rollback()
+
+            raise HTTPException(
+                status_code=404,
+                detail="Camera not found",
+            )
+
+        connection.commit()
+
+        return {
+            "success": True,
+            "deleted_id": deleted["id"],
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.error("Failed to delete camera %s: %s", camera_id, exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete camera",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# CAMERA STATISTICS
+# ============================================================
+
+@app.get("/api/cameras/stats")
+def camera_statistics():
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS total
+                FROM cameras
+                """
+            )
+            total = cursor.fetchone()["total"]
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS active
+                FROM cameras
+                WHERE LOWER(status) = 'active'
+                """
+            )
+            active = cursor.fetchone()["active"]
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS verified
+                FROM cameras
+                WHERE LOWER(verification_status) = 'verified'
+                """
+            )
+            verified = cursor.fetchone()["verified"]
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS pending
+                FROM cameras
+                WHERE LOWER(verification_status) = 'pending'
+                """
+            )
+            pending = cursor.fetchone()["pending"]
+
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(state, 'Unknown') AS state,
+                    COUNT(*) AS count
+                FROM cameras
+                GROUP BY state
+                ORDER BY count DESC
+                """
+            )
+            by_state = cursor.fetchall()
+
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(camera_type, 'Unknown') AS camera_type,
+                    COUNT(*) AS count
+                FROM cameras
+                GROUP BY camera_type
+                ORDER BY count DESC
+                """
+            )
+            by_type = cursor.fetchall()
+
+        return {
+            "total": total,
+            "active": active,
+            "verified": verified,
+            "pending": pending,
+            "by_state": by_state,
+            "by_camera_type": by_type,
+        }
+
+    except Exception as exc:
+        logger.error("Failed to retrieve statistics: %s", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve camera statistics",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# REPORTS TABLE INITIALIZATION
+# ============================================================
+
+def ensure_reports_table():
+    """
+    Create the reports table if it does not already exist.
+
+    This keeps the API compatible with the frontend's
+    /api/reports/pending request.
+    """
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS camera_reports (
+                    id SERIAL PRIMARY KEY,
+
+                    latitude DOUBLE PRECISION NOT NULL,
+                    longitude DOUBLE PRECISION NOT NULL,
+
+                    city VARCHAR(255),
+                    state VARCHAR(255),
+                    road_name VARCHAR(500),
+
+                    camera_type VARCHAR(255),
+                    description TEXT,
+
+                    source VARCHAR(500),
+                    source_url TEXT,
+
+                    status VARCHAR(50) DEFAULT 'pending',
+
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+                """
+            )
+
+        connection.commit()
+
+        logger.info("Reports table checked successfully")
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.warning(
+            "Could not initialize reports table: %s",
+            exc,
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# REPORT A CAMERA
+# ============================================================
+
+@app.post("/api/reports")
+def report_camera(report: CameraReport):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        ensure_reports_table()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                INSERT INTO camera_reports (
+                    latitude,
+                    longitude,
+                    city,
+                    state,
+                    road_name,
+                    camera_type,
+                    description,
+                    source,
+                    source_url,
+                    status
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    'pending'
+                )
+                RETURNING *
+                """,
+                (
+                    report.latitude,
+                    report.longitude,
+                    report.city,
+                    report.state,
+                    report.road_name,
+                    report.camera_type,
+                    report.description,
+                    report.source,
+                    report.source_url,
+                ),
+            )
+
+            created_report = cursor.fetchone()
+
+        connection.commit()
+
+        return {
+            "success": True,
+            "report": created_report,
+        }
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.error("Failed to submit camera report: %s", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to submit camera report",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# GET PENDING REPORTS
+# ============================================================
+
+@app.get("/api/reports/pending")
+def get_pending_reports():
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        # Make sure the table exists.
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS camera_reports (
+                    id SERIAL PRIMARY KEY,
+
+                    latitude DOUBLE PRECISION NOT NULL,
+                    longitude DOUBLE PRECISION NOT NULL,
+
+                    city VARCHAR(255),
+                    state VARCHAR(255),
+                    road_name VARCHAR(500),
+
+                    camera_type VARCHAR(255),
+                    description TEXT,
+
+                    source VARCHAR(500),
+                    source_url TEXT,
+
+                    status VARCHAR(50) DEFAULT 'pending',
+
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+                """
+            )
+
+        connection.commit()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                SELECT *
+                FROM camera_reports
+                WHERE LOWER(status) = 'pending'
+                ORDER BY created_at DESC
+                """
+            )
+
+            reports = cursor.fetchall()
+
+        return {
+            "count": len(reports),
+            "reports": reports,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.error(
+            "Failed to retrieve pending reports: %s",
+            exc,
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve pending reports",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# GET ALL REPORTS
+# ============================================================
+
+@app.get("/api/reports")
+def get_reports(
+    status: Optional[str] = Query(default=None),
+):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS camera_reports (
+                    id SERIAL PRIMARY KEY,
+
+                    latitude DOUBLE PRECISION NOT NULL,
+                    longitude DOUBLE PRECISION NOT NULL,
+
+                    city VARCHAR(255),
+                    state VARCHAR(255),
+                    road_name VARCHAR(500),
+
+                    camera_type VARCHAR(255),
+                    description TEXT,
+
+                    source VARCHAR(500),
+                    source_url TEXT,
+
+                    status VARCHAR(50) DEFAULT 'pending',
+
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+                """
+            )
+
+        connection.commit()
+
+        query = """
+            SELECT *
+            FROM camera_reports
+            WHERE 1=1
+        """
+
+        values = []
+
+        if status:
+            query += " AND LOWER(status) = LOWER(%s)"
+            values.append(status)
+
+        query += " ORDER BY created_at DESC"
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query, values)
+            reports = cursor.fetchall()
+
+        return {
+            "count": len(reports),
+            "reports": reports,
+        }
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.error("Failed to retrieve reports: %s", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve reports",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# APPROVE REPORT
+# ============================================================
+
+@app.post("/api/reports/{report_id}/approve")
+def approve_report(report_id: int):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                SELECT *
+                FROM camera_reports
+                WHERE id = %s
+                """,
+                (report_id,),
+            )
+
+            report = cursor.fetchone()
+
+        if not report:
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found",
+            )
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                INSERT INTO cameras (
+                    latitude,
+                    longitude,
+                    location,
+                    country,
+                    city,
+                    state,
+                    road_name,
+                    camera_type,
+                    status,
+                    verification_status,
+                    source,
+                    source_url
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    ST_SetSRID(
+                        ST_MakePoint(%s, %s),
+                        4326
+                    )::geography,
+                    'India',
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    'active',
+                    'pending',
+                    %s,
+                    %s
+                )
+                RETURNING id
+                """,
+                (
+                    report["latitude"],
+                    report["longitude"],
+                    report["longitude"],
+                    report["latitude"],
+                    report["city"],
+                    report["state"],
+                    report["road_name"],
+                    report["camera_type"] or "Traffic Camera",
+                    report["source"],
+                    report["source_url"],
+                ),
+            )
+
+            new_camera = cursor.fetchone()
+
+            cursor.execute(
+                """
+                UPDATE camera_reports
+                SET
+                    status = 'approved',
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (report_id,),
+            )
+
+        connection.commit()
+
+        return {
+            "success": True,
+            "report_id": report_id,
+            "camera_id": new_camera["id"],
+            "status": "approved",
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.error(
+            "Failed to approve report %s: %s",
+            report_id,
+            exc,
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to approve report",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# REJECT REPORT
+# ============================================================
+
+@app.post("/api/reports/{report_id}/reject")
+def reject_report(report_id: int):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+
+            cursor.execute(
+                """
+                UPDATE camera_reports
+                SET
+                    status = 'rejected',
+                    updated_at = NOW()
+                WHERE id = %s
+                RETURNING id
+                """,
+                (report_id,),
+            )
+
+            result = cursor.fetchone()
+
+        if not result:
+            connection.rollback()
+
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found",
+            )
+
+        connection.commit()
+
+        return {
+            "success": True,
+            "report_id": report_id,
+            "status": "rejected",
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+
+        logger.error(
+            "Failed to reject report %s: %s",
+            report_id,
+            exc,
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to reject report",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# SEARCH CAMERAS
+# ============================================================
+
+@app.get("/api/search")
+def search_cameras(
+    q: str = Query(..., min_length=1),
+):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        search_term = f"%{q}%"
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    latitude,
+                    longitude,
+                    country,
+                    city,
+                    state,
+                    road_name,
+                    camera_type,
+                    enforcement_type,
+                    speed_limit,
+                    status,
+                    verification_status,
+                    source,
+                    source_url,
+                    last_verified,
+                    created_at,
+                    updated_at
+                FROM cameras
+                WHERE
+                    city ILIKE %s
+                    OR state ILIKE %s
+                    OR road_name ILIKE %s
+                    OR camera_type ILIKE %s
+                    OR enforcement_type ILIKE %s
+                ORDER BY id ASC
+                LIMIT 500
+                """,
+                (
+                    search_term,
+                    search_term,
+                    search_term,
+                    search_term,
+                    search_term,
+                ),
+            )
+
+            cameras = cursor.fetchall()
+
+        return {
+            "query": q,
+            "count": len(cameras),
+            "cameras": cameras,
+        }
+
+    except Exception as exc:
+        logger.error("Camera search failed: %s", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to search cameras",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# INDIA ONLY
+# ============================================================
+
+@app.get("/api/india/cameras")
+def get_india_cameras(
+    limit: int = Query(default=5000, ge=1, le=50000),
+):
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    latitude,
+                    longitude,
+                    country,
+                    city,
+                    state,
+                    road_name,
+                    camera_type,
+                    enforcement_type,
+                    speed_limit,
+                    status,
+                    verification_status,
+                    source,
+                    source_url,
+                    last_verified,
+                    created_at,
+                    updated_at
+                FROM cameras
+                WHERE LOWER(country) = 'india'
+                ORDER BY id ASC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+
+            cameras = cursor.fetchall()
+
+        return {
+            "country": "India",
+            "count": len(cameras),
+            "cameras": cameras,
+        }
+
+    except Exception as exc:
+        logger.error(
+            "Failed to retrieve India cameras: %s",
+            exc,
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve India cameras",
+        )
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# ============================================================
+# RUN DIRECTLY
+# ============================================================
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "backend.main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=True,
+    )

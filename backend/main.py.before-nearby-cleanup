@@ -1,0 +1,3282 @@
+# ============================================================
+# GLOBAL CAMERA MAP
+# BACKEND - MAIN API
+# ============================================================
+
+import os
+import sys
+import asyncio
+import logging
+import json
+
+from typing import Optional
+
+import httpx
+import psycopg2
+
+from psycopg2.extras import RealDictCursor
+
+from dotenv import load_dotenv
+
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Body,
+    Query,
+)
+
+from fastapi.middleware.cors import CORSMiddleware
+
+
+# ============================================================
+# WINDOWS ASYNCIO FIX
+# ============================================================
+
+if sys.platform == "win32":
+
+    try:
+
+        asyncio.set_event_loop_policy(
+            asyncio.WindowsSelectorEventLoopPolicy()
+        )
+
+    except Exception:
+        pass
+
+
+# ============================================================
+# ENVIRONMENT
+# ============================================================
+
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+ENV_FILE = os.path.join(
+    BASE_DIR,
+    ".env"
+)
+
+load_dotenv(ENV_FILE)
+
+
+# ============================================================
+# LOGGING
+# ============================================================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
+
+logger = logging.getLogger(
+    "global-camera-map"
+)
+
+
+# ============================================================
+# DATABASE CONFIGURATION
+# ============================================================
+
+DB_HOST = os.getenv(
+    "DB_HOST",
+    "global_camera_db"
+)
+
+DB_PORT = int(
+    os.getenv(
+        "DB_PORT",
+        "5432"
+    )
+)
+
+DB_NAME = os.getenv(
+    "DB_NAME",
+    "global_camera"
+)
+
+DB_USER = os.getenv(
+    "DB_USER",
+    "camera_admin"
+)
+
+DB_PASSWORD = os.getenv(
+    "DB_PASSWORD",
+    ""
+)
+
+
+# ============================================================
+# ROUTING CONFIGURATION
+# ============================================================
+
+# Public OSRM routing service.
+#
+# OSRM expects:
+#
+# longitude,latitude
+#
+# Example:
+#
+# 76.7794,30.7333
+#
+# We use driving routing.
+# ============================================================
+
+OSRM_BASE_URL = os.getenv(
+    "OSRM_BASE_URL",
+    "https://router.project-osrm.org"
+)
+
+
+# ============================================================
+# CAMERA WARNING DISTANCE
+# ============================================================
+
+DEFAULT_CAMERA_ROUTE_RADIUS_METERS = 300
+
+MAX_CAMERA_ROUTE_RADIUS_METERS = 2000
+
+
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
+
+app = FastAPI(
+    title="Global Camera Map API",
+    description=(
+        "Backend API for the Global Camera Map "
+        "traffic camera awareness platform."
+    ),
+    version="2.0.0"
+)
+
+
+# ============================================================
+# CORS
+# ============================================================
+
+app.add_middleware(
+    CORSMiddleware,
+
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+
+    allow_credentials=True,
+
+    allow_methods=["*"],
+
+    allow_headers=["*"],
+)
+
+
+# ============================================================
+# DATABASE CONNECTION
+# ============================================================
+
+def get_db_connection():
+
+    try:
+
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            connect_timeout=10
+        )
+
+        return conn
+
+    except Exception as e:
+
+        logger.error(
+            "Database connection failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Database connection failed"
+        )
+
+
+# ============================================================
+# DATABASE HEALTH CHECK
+# ============================================================
+
+def check_database():
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT version()"
+        )
+
+        version = cursor.fetchone()[0]
+
+        return version
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# STARTUP
+# ============================================================
+
+@app.on_event("startup")
+def startup_event():
+
+    logger.info(
+        "Global Camera Map Backend Starting"
+    )
+
+    try:
+
+        version = check_database()
+
+        logger.info(
+            "Database connection: OK"
+        )
+
+        logger.info(
+            "PostgreSQL: %s",
+            version
+        )
+
+        logger.info(
+            "Global Camera Map Backend Ready"
+        )
+
+    except Exception as e:
+
+        logger.error(
+            "Database startup check failed: %s",
+            str(e)
+        )
+
+
+# ============================================================
+# SHUTDOWN
+# ============================================================
+
+@app.on_event("shutdown")
+def shutdown_event():
+
+    logger.info(
+        "Global Camera Map Backend stopped"
+    )
+
+
+# ============================================================
+# ROOT
+# ============================================================
+
+@app.get("/")
+def root():
+
+    return {
+        "message": "Global Camera Map Backend",
+        "status": "running",
+        "version": "2.0.0"
+    }
+
+
+# ============================================================
+# HEALTH
+# ============================================================
+
+@app.get("/health")
+def health():
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT version()"
+        )
+
+        version = cursor.fetchone()[0]
+
+        return {
+            "status": "OK",
+            "database": "connected",
+            "version": version
+        }
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "ERROR",
+                "database": "disconnected",
+                "message": str(e)
+            }
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# GET ALL CAMERAS
+# ============================================================
+
+@app.get("/api/cameras")
+def get_cameras():
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                *
+            FROM cameras
+            ORDER BY id DESC
+            """
+        )
+
+        cameras = cursor.fetchall()
+
+        return [
+            dict(camera)
+            for camera in cameras
+        ]
+
+    except HTTPException:
+
+        raise
+
+    except Exception as e:
+
+        logger.error(
+            "GET /api/cameras failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to fetch cameras"
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# SEARCH CAMERAS
+# ============================================================
+
+@app.get("/api/cameras/search")
+def search_cameras(
+    q: str = Query(
+        ...,
+        min_length=1
+    )
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        search_term = (
+            f"%{q.strip()}%"
+        )
+
+        cursor.execute(
+            """
+            SELECT *
+            FROM cameras
+            WHERE
+                CAST(id AS TEXT) ILIKE %s
+                OR COALESCE(city, '') ILIKE %s
+                OR COALESCE(state, '') ILIKE %s
+                OR COALESCE(road_name, '') ILIKE %s
+                OR COALESCE(camera_type, '') ILIKE %s
+            ORDER BY id DESC
+            """,
+            (
+                search_term,
+                search_term,
+                search_term,
+                search_term,
+                search_term
+            )
+        )
+
+        cameras = cursor.fetchall()
+
+        return [
+            dict(camera)
+            for camera in cameras
+        ]
+
+    except Exception as e:
+
+        logger.error(
+            "Camera search failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Camera search failed"
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+
+# ============================================================
+# CAMERAS NEARBY + AHEAD OF USER
+# ============================================================
+
+@app.get("/api/cameras/nearby")
+def get_nearby_cameras(
+    latitude: float = Query(...),
+    longitude: float = Query(...),
+    bearing: float = Query(...),
+    radius_meters: float = Query(1000)
+):
+    """Return cameras within the search radius that are ahead of the user."""
+
+    conn = None
+    cursor = None
+
+    try:
+        latitude = float(latitude)
+        longitude = float(longitude)
+        bearing = float(bearing) % 360
+        radius_meters = float(radius_meters)
+
+        if not -90 <= latitude <= 90:
+            raise HTTPException(status_code=400, detail="Invalid latitude")
+        if not -180 <= longitude <= 180:
+            raise HTTPException(status_code=400, detail="Invalid longitude")
+        if radius_meters <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="radius_meters must be greater than 0"
+            )
+        if radius_meters > 5000:
+            raise HTTPException(
+                status_code=400,
+                detail="radius_meters cannot exceed 5000 meters"
+            )
+
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        cursor.execute(
+            """
+            WITH user_point AS (
+                SELECT ST_SetSRID(
+                    ST_MakePoint(%s, %s),
+                    4326
+                ) AS geom
+            ),
+            nearby AS (
+                SELECT
+                    c.*,
+                    ST_Distance(
+                        c.location,
+                        u.geom::geography
+                    ) AS distance_meters,
+                    DEGREES(
+                        ST_Azimuth(
+                            u.geom,
+                            c.location::geometry
+                        )
+                    ) AS camera_bearing
+                FROM cameras c
+                CROSS JOIN user_point u
+                WHERE ST_DWithin(
+                    c.location,
+                    u.geom::geography,
+                    %s
+                )
+            ),
+            calculated AS (
+                SELECT
+                    nearby.*,
+                    ABS(
+                        MOD(
+                            (
+                                camera_bearing - %s + 540
+                            )::numeric,
+                            360::numeric
+                        ) - 180
+                    ) AS bearing_difference
+                FROM nearby
+            )
+            SELECT *
+            FROM calculated
+            WHERE bearing_difference <= 90
+            ORDER BY distance_meters ASC
+            """,
+            (
+                longitude,
+                latitude,
+                radius_meters,
+                bearing,
+            )
+        )
+
+        rows = cursor.fetchall()
+        cameras = []
+
+        for row in rows:
+            camera = dict(row)
+
+            if camera.get("distance_meters") is not None:
+                camera["distance_meters"] = round(
+                    float(camera["distance_meters"]), 2
+                )
+
+            if camera.get("camera_bearing") is not None:
+                camera["camera_bearing"] = round(
+                    float(camera["camera_bearing"]) % 360, 2
+                )
+
+            if camera.get("bearing_difference") is not None:
+                camera["bearing_difference"] = round(
+                    float(camera["bearing_difference"]), 2
+                )
+
+            distance = float(camera.get("distance_meters") or 0)
+
+            if distance <= 10:
+                warning_level = "10m"
+            elif distance <= 50:
+                warning_level = "50m"
+            elif distance <= 100:
+                warning_level = "100m"
+            elif distance <= 200:
+                warning_level = "200m"
+            elif distance <= 500:
+                warning_level = "500m"
+            elif distance <= 1000:
+                warning_level = "1000m"
+            else:
+                warning_level = None
+
+            camera["warning_level"] = warning_level
+
+            if distance < 1000:
+                camera["distance_text"] = f"{round(distance)} m"
+            else:
+                camera["distance_text"] = f"{distance / 1000:.2f} km"
+
+            cameras.append(camera)
+
+        return {
+            "success": True,
+            "user": {
+                "latitude": latitude,
+                "longitude": longitude,
+                "bearing": round(bearing, 2),
+                "radius_meters": radius_meters,
+            },
+            "total_cameras": len(cameras),
+            "next_camera": cameras[0] if cameras else None,
+            "cameras": cameras,
+        }
+
+    except HTTPException:
+        raise
+    except psycopg2.Error as e:
+        logger.error("Nearby camera database error: %s", str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "Database error while finding nearby cameras",
+                "error": str(e),
+            },
+        )
+    except Exception as e:
+        logger.exception("Nearby camera search failed")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+# ============================================================
+# GET SINGLE CAMERA
+# ============================================================
+
+@app.get("/api/cameras/{camera_id}")
+def get_camera(
+    camera_id: int
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            """
+            SELECT *
+            FROM cameras
+            WHERE id = %s
+            """,
+            (camera_id,)
+        )
+
+        camera = cursor.fetchone()
+
+        if camera is None:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Camera not found"
+            )
+
+        return dict(camera)
+
+    except HTTPException:
+
+        raise
+
+    except Exception as e:
+
+        logger.error(
+            "GET camera failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to fetch camera"
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# CREATE CAMERA
+# ============================================================
+
+@app.post("/api/cameras")
+def create_camera(
+    body: dict = Body(...)
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        latitude = body.get("latitude")
+        longitude = body.get("longitude")
+
+        country = body.get(
+            "country",
+            "India"
+        )
+
+        state = body.get("state")
+        city = body.get("city")
+        road_name = body.get("road_name")
+        camera_type = body.get("camera_type")
+        speed_limit = body.get("speed_limit")
+
+        status = body.get(
+            "status",
+            "Active"
+        )
+
+        verification_status = body.get(
+            "verification_status",
+            "Verified"
+        )
+
+        source = body.get("source")
+        source_url = body.get("source_url")
+
+        # ----------------------------------------------------
+        # VALIDATE COORDINATES
+        # ----------------------------------------------------
+
+        if latitude is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Latitude is required"
+            )
+
+        if longitude is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Longitude is required"
+            )
+
+        try:
+
+            latitude = float(latitude)
+            longitude = float(longitude)
+
+        except (TypeError, ValueError):
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Latitude and longitude "
+                    "must be numeric"
+                )
+            )
+
+        if not -90 <= latitude <= 90:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid latitude"
+            )
+
+        if not -180 <= longitude <= 180:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid longitude"
+            )
+
+        # ----------------------------------------------------
+        # DATABASE
+        # ----------------------------------------------------
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        # ----------------------------------------------------
+        # CHECK DUPLICATE CAMERA
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                latitude,
+                longitude,
+                country,
+                state,
+                city,
+                road_name,
+                camera_type,
+                status,
+                verification_status
+            FROM cameras
+            WHERE latitude = %s
+              AND longitude = %s
+            LIMIT 1
+            """,
+            (
+                latitude,
+                longitude
+            )
+        )
+
+        existing_camera = cursor.fetchone()
+
+        if existing_camera is not None:
+
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": (
+                        "Duplicate camera detected. "
+                        "A camera already exists at "
+                        "these coordinates."
+                    ),
+                    "existing_camera": dict(
+                        existing_camera
+                    )
+                }
+            )
+
+        # ----------------------------------------------------
+        # INSERT CAMERA
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            INSERT INTO cameras
+            (
+                country,
+                state,
+                city,
+                location,
+                road_name,
+                latitude,
+                longitude,
+                camera_type,
+                speed_limit,
+                status,
+                verification_status,
+                source,
+                source_url
+            )
+            VALUES
+            (
+                %s,
+                %s,
+                %s,
+                ST_SetSRID(
+                    ST_MakePoint(%s, %s),
+                    4326
+                )::geography,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s
+            )
+            RETURNING *
+            """,
+            (
+                country,
+                state,
+                city,
+                longitude,
+                latitude,
+                road_name,
+                latitude,
+                longitude,
+                camera_type,
+                speed_limit,
+                status,
+                verification_status,
+                source,
+                source_url
+            )
+        )
+
+        camera = cursor.fetchone()
+
+        conn.commit()
+
+        return {
+            "message": "Camera created successfully",
+            "camera": dict(camera)
+        }
+
+    except HTTPException:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        raise
+
+    except Exception as e:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        logger.error(
+            "POST /api/cameras failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# GET ALL REPORTS
+# ============================================================
+
+@app.get("/api/reports")
+def get_reports():
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                latitude,
+                longitude,
+                city,
+                state,
+                road_name,
+                camera_type,
+                reporter_name,
+                notes,
+                status,
+                created_at,
+                image_path
+            FROM camera_reports
+            ORDER BY created_at DESC, id DESC
+            """
+        )
+
+        reports = cursor.fetchall()
+
+        return [
+            dict(report)
+            for report in reports
+        ]
+
+    except Exception as e:
+
+        logger.error(
+            "GET /api/reports failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to fetch reports"
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# GET PENDING REPORTS
+# ============================================================
+
+@app.get("/api/reports/pending")
+def get_pending_reports():
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                latitude,
+                longitude,
+                city,
+                state,
+                road_name,
+                camera_type,
+                reporter_name,
+                notes,
+                status,
+                created_at,
+                image_path
+            FROM camera_reports
+            WHERE LOWER(status) = 'pending'
+            ORDER BY created_at DESC, id DESC
+            """
+        )
+
+        reports = cursor.fetchall()
+
+        return [
+            dict(report)
+            for report in reports
+        ]
+
+    except Exception as e:
+
+        logger.error(
+            "GET /api/reports/pending failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to fetch pending reports"
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# GET SINGLE REPORT
+# ============================================================
+
+@app.get("/api/reports/{report_id}")
+def get_report(
+    report_id: int
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                latitude,
+                longitude,
+                city,
+                state,
+                road_name,
+                camera_type,
+                reporter_name,
+                notes,
+                status,
+                created_at,
+                image_path
+            FROM camera_reports
+            WHERE id = %s
+            """,
+            (report_id,)
+        )
+
+        report = cursor.fetchone()
+
+        if report is None:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found"
+            )
+
+        return dict(report)
+
+    except HTTPException:
+
+        raise
+
+    except Exception as e:
+
+        logger.error(
+            "GET report failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to fetch report"
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# CREATE CAMERA REPORT
+# ============================================================
+
+@app.post("/api/reports")
+def create_report(
+    body: dict = Body(...)
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        latitude = body.get("latitude")
+        longitude = body.get("longitude")
+
+        city = body.get("city")
+        state = body.get("state")
+        road_name = body.get("road_name")
+        camera_type = body.get("camera_type")
+        reporter_name = body.get("reporter_name")
+        notes = body.get("notes")
+        image_path = body.get("image_path")
+
+        # ----------------------------------------------------
+        # VALIDATION
+        # ----------------------------------------------------
+
+        if latitude is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Latitude is required"
+            )
+
+        if longitude is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Longitude is required"
+            )
+
+        try:
+
+            latitude = float(latitude)
+            longitude = float(longitude)
+
+        except (TypeError, ValueError):
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Latitude and longitude "
+                    "must be numeric"
+                )
+            )
+
+        if not -90 <= latitude <= 90:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid latitude"
+            )
+
+        if not -180 <= longitude <= 180:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid longitude"
+            )
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        # ----------------------------------------------------
+        # INSERT REPORT
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            INSERT INTO camera_reports
+            (
+                latitude,
+                longitude,
+                city,
+                state,
+                road_name,
+                camera_type,
+                reporter_name,
+                notes,
+                status,
+                image_path
+            )
+            VALUES
+            (
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                'Pending',
+                %s
+            )
+            RETURNING *
+            """,
+            (
+                latitude,
+                longitude,
+                city,
+                state,
+                road_name,
+                camera_type,
+                reporter_name,
+                notes,
+                image_path
+            )
+        )
+
+        report = cursor.fetchone()
+
+        conn.commit()
+
+        return {
+            "message": (
+                "Camera report submitted "
+                "successfully"
+            ),
+            "report": dict(report)
+        }
+
+    except HTTPException:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        raise
+
+    except Exception as e:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        logger.error(
+            "POST /api/reports failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# APPROVE REPORT
+# ============================================================
+
+@app.put("/api/reports/{report_id}/approve")
+def approve_report(
+    report_id: int
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        # ----------------------------------------------------
+        # GET REPORT
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                latitude,
+                longitude,
+                city,
+                state,
+                road_name,
+                camera_type,
+                reporter_name,
+                notes,
+                status,
+                created_at,
+                image_path
+            FROM camera_reports
+            WHERE id = %s
+            FOR UPDATE
+            """,
+            (report_id,)
+        )
+
+        report = cursor.fetchone()
+
+        if report is None:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found"
+            )
+
+        # ----------------------------------------------------
+        # PREVENT DUPLICATE APPROVAL
+        # ----------------------------------------------------
+
+        if str(
+            report["status"]
+        ).strip().lower() == "approved":
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Report has already "
+                    "been approved"
+                )
+            )
+
+        # ----------------------------------------------------
+        # VALIDATE LATITUDE
+        # ----------------------------------------------------
+
+        if report["latitude"] is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Report latitude is missing"
+            )
+
+        try:
+
+            latitude = float(
+                report["latitude"]
+            )
+
+        except (TypeError, ValueError):
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid report latitude"
+            )
+
+        if not -90 <= latitude <= 90:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid report latitude"
+            )
+
+        # ----------------------------------------------------
+        # VALIDATE LONGITUDE
+        # ----------------------------------------------------
+
+        if report["longitude"] is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Report longitude is missing"
+            )
+
+        try:
+
+            longitude = float(
+                report["longitude"]
+            )
+
+        except (TypeError, ValueError):
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid report longitude"
+            )
+
+        if not -180 <= longitude <= 180:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid report longitude"
+            )
+
+        # ----------------------------------------------------
+        # CHECK DUPLICATE CAMERA
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                latitude,
+                longitude,
+                country,
+                state,
+                city,
+                road_name,
+                camera_type,
+                status,
+                verification_status
+            FROM cameras
+            WHERE latitude = %s
+              AND longitude = %s
+            LIMIT 1
+            """,
+            (
+                latitude,
+                longitude
+            )
+        )
+
+        existing_camera = cursor.fetchone()
+
+        if existing_camera is not None:
+
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": (
+                        "Cannot approve report. "
+                        "A camera already exists "
+                        "at these coordinates."
+                    ),
+                    "existing_camera": dict(
+                        existing_camera
+                    )
+                }
+            )
+
+        # ----------------------------------------------------
+        # INSERT CAMERA
+        # ----------------------------------------------------
+
+        camera_insert_sql = """
+            INSERT INTO cameras
+            (
+                country,
+                state,
+                city,
+                location,
+                road_name,
+                latitude,
+                longitude,
+                camera_type,
+                status,
+                verification_status
+            )
+            VALUES
+            (
+                'India',
+                %s,
+                %s,
+                ST_SetSRID(
+                    ST_MakePoint(%s, %s),
+                    4326
+                )::geography,
+                %s,
+                %s,
+                %s,
+                %s,
+                'Active',
+                'Verified'
+            )
+            RETURNING *
+        """
+
+        camera_parameters = (
+            report["state"],
+            report["city"],
+            longitude,
+            latitude,
+            report["road_name"],
+            latitude,
+            longitude,
+            report["camera_type"]
+        )
+
+        cursor.execute(
+            camera_insert_sql,
+            camera_parameters
+        )
+
+        camera = cursor.fetchone()
+
+        if camera is None:
+
+            raise HTTPException(
+                status_code=500,
+                detail="Camera was not created"
+            )
+
+        # ----------------------------------------------------
+        # UPDATE REPORT
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            UPDATE camera_reports
+            SET status = 'Approved'
+            WHERE id = %s
+            RETURNING *
+            """,
+            (report_id,)
+        )
+
+        updated_report = cursor.fetchone()
+
+        if updated_report is None:
+
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Report status could "
+                    "not be updated"
+                )
+            )
+
+        # ----------------------------------------------------
+        # COMMIT
+        # ----------------------------------------------------
+
+        conn.commit()
+
+        logger.info(
+            "Report %s approved successfully. "
+            "Camera %s created.",
+            report_id,
+            camera["id"]
+        )
+
+        return {
+            "message": (
+                "Report approved successfully"
+            ),
+            "report": dict(updated_report),
+            "camera": dict(camera)
+        }
+
+    except HTTPException:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        raise
+
+    except psycopg2.Error as e:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        logger.error(
+            "Database error while approving "
+            "report %s: %s",
+            report_id,
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": (
+                    "Database error while "
+                    "approving report"
+                ),
+                "error": str(e)
+            }
+        )
+
+    except Exception as e:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        logger.exception(
+            "Unexpected error approving "
+            "report %s",
+            report_id
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# REJECT REPORT
+# ============================================================
+
+@app.put("/api/reports/{report_id}/reject")
+def reject_report(
+    report_id: int
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        # ----------------------------------------------------
+        # CHECK REPORT
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT *
+            FROM camera_reports
+            WHERE id = %s
+            FOR UPDATE
+            """,
+            (report_id,)
+        )
+
+        report = cursor.fetchone()
+
+        if report is None:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found"
+            )
+
+        if str(
+            report["status"]
+        ).strip().lower() == "approved":
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Approved report "
+                    "cannot be rejected"
+                )
+            )
+
+        # ----------------------------------------------------
+        # UPDATE
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            UPDATE camera_reports
+            SET status = 'Rejected'
+            WHERE id = %s
+            RETURNING *
+            """,
+            (report_id,)
+        )
+
+        updated_report = cursor.fetchone()
+
+        conn.commit()
+
+        return {
+            "message": (
+                "Report rejected successfully"
+            ),
+            "report": dict(updated_report)
+        }
+
+    except HTTPException:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        raise
+
+    except Exception as e:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        logger.error(
+            "Reject report failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# DELETE REPORT
+# ============================================================
+
+@app.delete("/api/reports/{report_id}")
+def delete_report(
+    report_id: int
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM camera_reports
+            WHERE id = %s
+            RETURNING *
+            """,
+            (report_id,)
+        )
+
+        deleted_report = cursor.fetchone()
+
+        if deleted_report is None:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found"
+            )
+
+        conn.commit()
+
+        return {
+            "message": (
+                "Report deleted successfully"
+            ),
+            "report": dict(deleted_report)
+        }
+
+    except HTTPException:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        raise
+
+    except Exception as e:
+
+        if conn:
+
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        logger.error(
+            "Delete report failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# GLOBAL STATISTICS
+# ============================================================
+
+@app.get("/api/stats")
+def get_stats():
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        # ----------------------------------------------------
+        # CAMERA COUNT
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM cameras
+            """
+        )
+
+        camera_count = cursor.fetchone()
+
+        # ----------------------------------------------------
+        # REPORT COUNT
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM camera_reports
+            """
+        )
+
+        report_count = cursor.fetchone()
+
+        # ----------------------------------------------------
+        # PENDING REPORTS
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM camera_reports
+            WHERE LOWER(status) = 'pending'
+            """
+        )
+
+        pending_count = cursor.fetchone()
+
+        # ----------------------------------------------------
+        # APPROVED REPORTS
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM camera_reports
+            WHERE LOWER(status) = 'approved'
+            """
+        )
+
+        approved_count = cursor.fetchone()
+
+        # ----------------------------------------------------
+        # REJECTED REPORTS
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM camera_reports
+            WHERE LOWER(status) = 'rejected'
+            """
+        )
+
+        rejected_count = cursor.fetchone()
+
+        # ----------------------------------------------------
+        # VERIFIED CAMERAS
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM cameras
+            WHERE LOWER(
+                COALESCE(
+                    verification_status,
+                    ''
+                )
+            ) = 'verified'
+            """
+        )
+
+        verified_count = cursor.fetchone()
+
+        return {
+            "total_cameras": int(
+                camera_count["count"]
+            ),
+            "total_reports": int(
+                report_count["count"]
+            ),
+            "pending_reports": int(
+                pending_count["count"]
+            ),
+            "approved_reports": int(
+                approved_count["count"]
+            ),
+            "rejected_reports": int(
+                rejected_count["count"]
+            ),
+            "verified_cameras": int(
+                verified_count["count"]
+            )
+        }
+
+    except Exception as e:
+
+        logger.error(
+            "GET /api/stats failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to calculate "
+                "statistics"
+            )
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# CITY STATISTICS
+# ============================================================
+
+@app.get("/api/stats/cities")
+def get_city_stats():
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                COALESCE(
+                    NULLIF(TRIM(city), ''),
+                    'Unknown'
+                ) AS city,
+                COUNT(*) AS camera_count
+            FROM cameras
+            GROUP BY
+                COALESCE(
+                    NULLIF(TRIM(city), ''),
+                    'Unknown'
+                )
+            ORDER BY
+                camera_count DESC,
+                city ASC
+            """
+        )
+
+        rows = cursor.fetchall()
+
+        return [
+            {
+                "city": row["city"],
+                "camera_count": int(
+                    row["camera_count"]
+                )
+            }
+            for row in rows
+        ]
+
+    except Exception as e:
+
+        logger.error(
+            "GET /api/stats/cities failed: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to calculate "
+                "city statistics"
+            )
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# ROUTE PLANNING
+# ============================================================
+#
+# RADARBOT-STYLE FEATURE
+#
+# User provides:
+#
+# Point A
+# Point B
+#
+# Backend:
+#
+# 1. Sends A -> B to OSRM
+# 2. Gets driving route
+# 3. Converts route into PostGIS geometry
+# 4. Searches cameras near the route
+# 5. Calculates:
+#
+#       distance from route
+#       approximate distance along route
+#
+# 6. Returns route + nearby cameras
+#
+# ============================================================
+
+@app.post("/api/route")
+def create_route(
+    body: dict = Body(...)
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        # ====================================================
+        # READ POINT A
+        # ====================================================
+
+        start_latitude = body.get(
+            "start_latitude"
+        )
+
+        start_longitude = body.get(
+            "start_longitude"
+        )
+
+        # ====================================================
+        # READ POINT B
+        # ====================================================
+
+        end_latitude = body.get(
+            "end_latitude"
+        )
+
+        end_longitude = body.get(
+            "end_longitude"
+        )
+
+        # ====================================================
+        # CAMERA SEARCH RADIUS
+        # ====================================================
+
+        radius_meters = body.get(
+            "camera_radius_meters",
+            DEFAULT_CAMERA_ROUTE_RADIUS_METERS
+        )
+
+        # ====================================================
+        # VALIDATE REQUIRED VALUES
+        # ====================================================
+
+        if start_latitude is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="start_latitude is required"
+            )
+
+        if start_longitude is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="start_longitude is required"
+            )
+
+        if end_latitude is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="end_latitude is required"
+            )
+
+        if end_longitude is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="end_longitude is required"
+            )
+
+        # ====================================================
+        # CONVERT COORDINATES
+        # ====================================================
+
+        try:
+
+            start_latitude = float(
+                start_latitude
+            )
+
+            start_longitude = float(
+                start_longitude
+            )
+
+            end_latitude = float(
+                end_latitude
+            )
+
+            end_longitude = float(
+                end_longitude
+            )
+
+            radius_meters = float(
+                radius_meters
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Coordinates and "
+                    "camera radius must be numeric"
+                )
+            )
+
+        # ====================================================
+        # VALIDATE COORDINATE RANGES
+        # ====================================================
+
+        if not -90 <= start_latitude <= 90:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid start latitude"
+            )
+
+        if not -180 <= start_longitude <= 180:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid start longitude"
+            )
+
+        if not -90 <= end_latitude <= 90:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid end latitude"
+            )
+
+        if not -180 <= end_longitude <= 180:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid end longitude"
+            )
+
+        # ====================================================
+        # VALIDATE RADIUS
+        # ====================================================
+
+        if radius_meters <= 0:
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "camera_radius_meters "
+                    "must be greater than 0"
+                )
+            )
+
+        if radius_meters > MAX_CAMERA_ROUTE_RADIUS_METERS:
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "camera_radius_meters cannot "
+                    f"exceed {MAX_CAMERA_ROUTE_RADIUS_METERS} "
+                    "meters"
+                )
+            )
+
+        # ====================================================
+        # PREVENT SAME POINT
+        # ====================================================
+
+        if (
+            start_latitude == end_latitude
+            and
+            start_longitude == end_longitude
+        ):
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Point A and Point B "
+                    "cannot be identical"
+                )
+            )
+
+        # ====================================================
+        # BUILD OSRM URL
+        # ====================================================
+        #
+        # IMPORTANT:
+        #
+        # OSRM uses:
+        #
+        # longitude,latitude
+        #
+        # NOT:
+        #
+        # latitude,longitude
+        #
+        # ====================================================
+
+        osrm_url = (
+            f"{OSRM_BASE_URL}/route/v1/driving/"
+            f"{start_longitude},{start_latitude};"
+            f"{end_longitude},{end_latitude}"
+        )
+
+        osrm_params = {
+            "overview": "full",
+            "geometries": "geojson",
+            "steps": "false"
+        }
+
+        logger.info(
+            "Requesting route: %s -> %s",
+            (
+                start_latitude,
+                start_longitude
+            ),
+            (
+                end_latitude,
+                end_longitude
+            )
+        )
+
+        # ====================================================
+        # REQUEST ROUTE FROM OSRM
+        # ====================================================
+
+        try:
+
+            with httpx.Client(
+                timeout=30.0
+            ) as client:
+
+                response = client.get(
+                    osrm_url,
+                    params=osrm_params
+                )
+
+        except httpx.RequestError as e:
+
+            logger.error(
+                "OSRM request failed: %s",
+                str(e)
+            )
+
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Unable to connect to "
+                    "routing service"
+                )
+            )
+
+        # ====================================================
+        # CHECK OSRM RESPONSE
+        # ====================================================
+
+        if response.status_code != 200:
+
+            logger.error(
+                "OSRM returned HTTP %s: %s",
+                response.status_code,
+                response.text
+            )
+
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Routing service returned "
+                    "an error"
+                )
+            )
+
+        try:
+
+            route_data = response.json()
+
+        except Exception:
+
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Routing service returned "
+                    "invalid JSON"
+                )
+            )
+
+        # ====================================================
+        # CHECK ROUTE STATUS
+        # ====================================================
+
+        if route_data.get("code") != "Ok":
+
+            logger.error(
+                "OSRM routing failed: %s",
+                route_data
+            )
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    route_data.get(
+                        "message",
+                        "No route found"
+                    )
+                )
+            )
+
+        routes = route_data.get(
+            "routes",
+            []
+        )
+
+        if not routes:
+
+            raise HTTPException(
+                status_code=404,
+                detail="No driving route found"
+            )
+
+        # ====================================================
+        # FIRST ROUTE
+        # ====================================================
+
+        selected_route = routes[0]
+
+        route_geometry = selected_route.get(
+            "geometry"
+        )
+
+        if not route_geometry:
+
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Routing service did not "
+                    "return route geometry"
+                )
+            )
+
+        route_coordinates = route_geometry.get(
+            "coordinates",
+            []
+        )
+
+        if len(route_coordinates) < 2:
+
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Route geometry contains "
+                    "insufficient coordinates"
+                )
+            )
+
+        # ====================================================
+        # ROUTE DISTANCE
+        # ====================================================
+
+        route_distance_meters = float(
+            selected_route.get(
+                "distance",
+                0
+            )
+        )
+
+        route_duration_seconds = float(
+            selected_route.get(
+                "duration",
+                0
+            )
+        )
+
+        route_distance_km = (
+            route_distance_meters / 1000
+        )
+
+        route_duration_minutes = (
+            route_duration_seconds / 60
+        )
+
+        # ====================================================
+        # ROUTE GEOMETRY FOR POSTGIS
+        # ====================================================
+
+        route_geometry_json = json.dumps(
+            route_geometry
+        )
+
+        # ====================================================
+        # DATABASE
+        # ====================================================
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        # ====================================================
+        # FIND CAMERAS NEAR ROUTE
+        # ====================================================
+        #
+        # We search within radius_meters.
+        #
+        # Example:
+        #
+        # 300 meters
+        #
+        # means cameras within 300m of the
+        # driving route are returned.
+        #
+        # ====================================================
+
+        cursor.execute(
+            """
+            WITH route AS
+            (
+                SELECT
+                    ST_SetSRID(
+                        ST_GeomFromGeoJSON(%s),
+                        4326
+                    ) AS geom
+            )
+
+            SELECT
+
+                c.id,
+
+                c.latitude,
+
+                c.longitude,
+
+                c.country,
+
+                c.state,
+
+                c.city,
+
+                c.road_name,
+
+                c.camera_type,
+
+                c.speed_limit,
+
+                c.status,
+
+                c.verification_status,
+
+                c.source,
+
+                c.source_url,
+
+                c.created_at,
+
+                c.updated_at,
+
+                ST_Distance(
+                    c.location,
+                    route.geom::geography
+                ) AS distance_from_route_meters,
+
+                (
+                    ST_LineLocatePoint(
+                        route.geom,
+                        c.location::geometry
+                    )
+                    *
+                    ST_Length(
+                        route.geom::geography
+                    )
+                ) AS distance_along_route_meters
+
+            FROM cameras c
+
+            CROSS JOIN route
+
+            WHERE
+                ST_DWithin(
+                    c.location,
+                    route.geom::geography,
+                    %s
+                )
+
+            ORDER BY
+                distance_along_route_meters ASC,
+                distance_from_route_meters ASC
+
+            """,
+            (
+                route_geometry_json,
+                radius_meters
+            )
+        )
+
+        cameras = cursor.fetchall()
+
+        # ====================================================
+        # FORMAT CAMERA RESULTS
+        # ====================================================
+
+        route_cameras = []
+
+        for camera in cameras:
+
+            camera_data = dict(camera)
+
+            distance_from_route = float(
+                camera_data.get(
+                    "distance_from_route_meters",
+                    0
+                )
+                or 0
+            )
+
+            distance_along_route = float(
+                camera_data.get(
+                    "distance_along_route_meters",
+                    0
+                )
+                or 0
+            )
+
+            camera_data[
+                "distance_from_route_meters"
+            ] = round(
+                distance_from_route,
+                2
+            )
+
+            camera_data[
+                "distance_from_route_km"
+            ] = round(
+                distance_from_route / 1000,
+                3
+            )
+
+            camera_data[
+                "distance_along_route_meters"
+            ] = round(
+                distance_along_route,
+                2
+            )
+
+            camera_data[
+                "distance_along_route_km"
+            ] = round(
+                distance_along_route / 1000,
+                3
+            )
+
+            # ------------------------------------------------
+            # RADARBOT-STYLE WARNING CATEGORY
+            # ------------------------------------------------
+
+            if distance_along_route <= 100:
+
+                warning_level = "immediate"
+
+            elif distance_along_route <= 500:
+
+                warning_level = "very_close"
+
+            elif distance_along_route <= 1000:
+
+                warning_level = "near"
+
+            else:
+
+                warning_level = "ahead"
+
+            camera_data[
+                "warning_level"
+            ] = warning_level
+
+            route_cameras.append(
+                camera_data
+            )
+
+        # ====================================================
+        # CREATE WARNING SUMMARY
+        # ====================================================
+
+        immediate_count = 0
+        very_close_count = 0
+        near_count = 0
+
+        for camera in route_cameras:
+
+            warning_level = camera.get(
+                "warning_level"
+            )
+
+            if warning_level == "immediate":
+
+                immediate_count += 1
+
+            elif warning_level == "very_close":
+
+                very_close_count += 1
+
+            elif warning_level == "near":
+
+                near_count += 1
+
+        # ====================================================
+        # LOG RESULT
+        # ====================================================
+
+        logger.info(
+            "Route created: %.2f km, "
+            "%.2f minutes, "
+            "%s cameras nearby",
+            route_distance_km,
+            route_duration_minutes,
+            len(route_cameras)
+        )
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
+
+        return {
+
+            "success": True,
+
+            "route": {
+
+                "distance_meters": round(
+                    route_distance_meters,
+                    2
+                ),
+
+                "distance_km": round(
+                    route_distance_km,
+                    3
+                ),
+
+                "duration_seconds": round(
+                    route_duration_seconds,
+                    2
+                ),
+
+                "duration_minutes": round(
+                    route_duration_minutes,
+                    2
+                ),
+
+                "geometry": route_geometry,
+
+                "coordinates": route_coordinates,
+
+                "start": {
+                    "latitude": start_latitude,
+                    "longitude": start_longitude
+                },
+
+                "end": {
+                    "latitude": end_latitude,
+                    "longitude": end_longitude
+                }
+            },
+
+            "camera_search": {
+
+                "radius_meters": radius_meters,
+
+                "total_cameras": len(
+                    route_cameras
+                ),
+
+                "immediate": immediate_count,
+
+                "very_close": very_close_count,
+
+                "near": near_count
+            },
+
+            "cameras": route_cameras
+        }
+
+    except HTTPException:
+
+        raise
+
+    except psycopg2.Error as e:
+
+        logger.error(
+            "Database error while "
+            "finding route cameras: %s",
+            str(e)
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Database error while "
+                "finding cameras near route"
+            )
+        )
+
+    except Exception as e:
+
+        logger.exception(
+            "Unexpected route error"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# ROUTE CAMERAS ONLY
+# ============================================================
+#
+# This endpoint is useful later for the live RadarBot mode.
+#
+# It accepts:
+#
+# current location
+# route geometry
+#
+# and returns nearby cameras.
+#
+# ============================================================
+
+@app.post("/api/route/cameras")
+def get_route_cameras(
+    body: dict = Body(...)
+):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        route_geometry = body.get(
+            "route_geometry"
+        )
+
+        radius_meters = body.get(
+            "camera_radius_meters",
+            DEFAULT_CAMERA_ROUTE_RADIUS_METERS
+        )
+
+        if not route_geometry:
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "route_geometry is required"
+                )
+            )
+
+        try:
+
+            radius_meters = float(
+                radius_meters
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "camera_radius_meters "
+                    "must be numeric"
+                )
+            )
+
+        if radius_meters <= 0:
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "camera_radius_meters "
+                    "must be greater than 0"
+                )
+            )
+
+        if radius_meters > MAX_CAMERA_ROUTE_RADIUS_METERS:
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "camera_radius_meters cannot "
+                    f"exceed {MAX_CAMERA_ROUTE_RADIUS_METERS} "
+                    "meters"
+                )
+            )
+
+        route_geometry_json = json.dumps(
+            route_geometry
+        )
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            """
+            WITH route AS
+            (
+                SELECT
+                    ST_SetSRID(
+                        ST_GeomFromGeoJSON(%s),
+                        4326
+                    ) AS geom
+            )
+
+            SELECT
+
+                c.id,
+
+                c.latitude,
+
+                c.longitude,
+
+                c.country,
+
+                c.state,
+
+                c.city,
+
+                c.road_name,
+
+                c.camera_type,
+
+                c.speed_limit,
+
+                c.status,
+
+                c.verification_status,
+
+                ST_Distance(
+                    c.location,
+                    route.geom::geography
+                ) AS distance_from_route_meters
+
+            FROM cameras c
+
+            CROSS JOIN route
+
+            WHERE
+                ST_DWithin(
+                    c.location,
+                    route.geom::geography,
+                    %s
+                )
+
+            ORDER BY
+                distance_from_route_meters ASC
+
+            """,
+            (
+                route_geometry_json,
+                radius_meters
+            )
+        )
+
+        cameras = cursor.fetchall()
+
+        result = []
+
+        for camera in cameras:
+
+            camera_data = dict(camera)
+
+            distance = float(
+                camera_data.get(
+                    "distance_from_route_meters",
+                    0
+                )
+                or 0
+            )
+
+            camera_data[
+                "distance_from_route_meters"
+            ] = round(
+                distance,
+                2
+            )
+
+            camera_data[
+                "distance_from_route_km"
+            ] = round(
+                distance / 1000,
+                3
+            )
+
+            result.append(
+                camera_data
+            )
+
+        return {
+
+            "success": True,
+
+            "radius_meters": radius_meters,
+
+            "total_cameras": len(result),
+
+            "cameras": result
+
+        }
+
+    except HTTPException:
+
+        raise
+
+    except Exception as e:
+
+        logger.exception(
+            "Route camera search failed"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        if cursor:
+
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ============================================================
+# RUN DIRECTLY
+# ============================================================
+
+if __name__ == "__main__":
+
+    import uvicorn
+
+    uvicorn.run(
+        "main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=False
+    )

@@ -1,13 +1,15 @@
-import logging
 import os
-from datetime import datetime
+import logging
 from pathlib import Path
+from datetime import datetime
 from typing import Optional
 
 from dotenv import load_dotenv
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from psycopg2.extras import RealDictCursor
 
 from backend.database import get_db_connection
@@ -15,7 +17,7 @@ from backend.routes.routing import router as routing_router
 
 
 # ============================================================
-# ENVIRONMENT
+# ENVIRONMENT CONFIGURATION
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -62,10 +64,10 @@ logger.info(
 app = FastAPI(
     title="Global Camera Map API",
     description=(
-        "Global traffic camera, traffic monitoring, "
-        "route, navigation, reporting and statistics API."
+        "Global traffic camera, route, navigation, "
+        "camera reporting and camera statistics API."
     ),
-    version="2.3.0",
+    version="2.1.0",
 )
 
 
@@ -88,7 +90,7 @@ app.add_middleware(
 
 
 # ============================================================
-# ROUTING
+# ROUTING API
 # ============================================================
 
 app.include_router(
@@ -100,7 +102,6 @@ app.include_router(
 # ============================================================
 # PYDANTIC MODELS
 # ============================================================
-
 
 class CameraCreate(BaseModel):
     latitude: float
@@ -161,62 +162,13 @@ class CameraReport(BaseModel):
     source_url: Optional[str] = None
 
 
-class TrafficSegmentCreate(BaseModel):
-    road_name: Optional[str] = None
-
-    start_latitude: float
-    start_longitude: float
-
-    end_latitude: float
-    end_longitude: float
-
-    current_speed: Optional[float] = None
-    free_flow_speed: Optional[float] = None
-
-    delay_seconds: int = 0
-
-    congestion_level: str = "unknown"
-    traffic_status: str = "unknown"
-
-    source: Optional[str] = None
-    source_id: Optional[str] = None
-
-    observed_at: Optional[datetime] = None
-
-
-class TrafficSegmentUpdate(BaseModel):
-    road_name: Optional[str] = None
-
-    start_latitude: Optional[float] = None
-    start_longitude: Optional[float] = None
-
-    end_latitude: Optional[float] = None
-    end_longitude: Optional[float] = None
-
-    current_speed: Optional[float] = None
-    free_flow_speed: Optional[float] = None
-
-    delay_seconds: Optional[int] = None
-
-    congestion_level: Optional[str] = None
-    traffic_status: Optional[str] = None
-
-    source: Optional[str] = None
-    source_id: Optional[str] = None
-
-    observed_at: Optional[datetime] = None
-
-
 # ============================================================
 # DATABASE HELPERS
 # ============================================================
 
-
 def ensure_reports_table():
     """
-    Create/migrate the camera_reports table safely.
-
-    Existing report data is preserved.
+    Make sure the camera_reports table exists.
     """
 
     connection = None
@@ -225,7 +177,6 @@ def ensure_reports_table():
         connection = get_db_connection()
 
         with connection.cursor() as cursor:
-
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS camera_reports (
@@ -239,16 +190,10 @@ def ensure_reports_table():
                     road_name VARCHAR(500),
 
                     camera_type VARCHAR(255),
-
-                    reporter_name VARCHAR(255),
-                    notes TEXT,
-
                     description TEXT,
 
                     source VARCHAR(500),
                     source_url TEXT,
-
-                    image_path TEXT,
 
                     status VARCHAR(50) DEFAULT 'pending',
 
@@ -258,164 +203,19 @@ def ensure_reports_table():
                 """
             )
 
-            columns = [
-                "description TEXT",
-                "source VARCHAR(500)",
-                "source_url TEXT",
-                "updated_at TIMESTAMP DEFAULT NOW()",
-                "reporter_name VARCHAR(255)",
-                "notes TEXT",
-                "image_path TEXT",
-            ]
-
-            for column in columns:
-                cursor.execute(
-                    f"""
-                    ALTER TABLE camera_reports
-                    ADD COLUMN IF NOT EXISTS {column}
-                    """
-                )
-
-            cursor.execute(
-                """
-                UPDATE camera_reports
-                SET status = 'pending'
-                WHERE status IS NULL
-                """
-            )
-
-            cursor.execute(
-                """
-                UPDATE camera_reports
-                SET updated_at = COALESCE(
-                    updated_at,
-                    created_at,
-                    NOW()
-                )
-                WHERE updated_at IS NULL
-                """
-            )
-
         connection.commit()
 
-        logger.info(
-            "camera_reports table checked successfully"
-        )
+        logger.info("camera_reports table checked successfully")
 
     except Exception as exc:
 
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.warning(
             "Could not initialize camera_reports table: %s",
             exc,
         )
-
-        raise
-
-    finally:
-
-        if connection:
-            connection.close()
-
-
-def ensure_traffic_segments_table():
-    """
-    Create the traffic_segments table and indexes if necessary.
-    """
-
-    connection = None
-
-    try:
-        connection = get_db_connection()
-
-        with connection.cursor() as cursor:
-
-            cursor.execute(
-                """
-                CREATE EXTENSION IF NOT EXISTS postgis
-                """
-            )
-
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS traffic_segments (
-                    id SERIAL PRIMARY KEY,
-
-                    road_name TEXT,
-
-                    start_latitude DOUBLE PRECISION,
-                    start_longitude DOUBLE PRECISION,
-
-                    end_latitude DOUBLE PRECISION,
-                    end_longitude DOUBLE PRECISION,
-
-                    geometry GEOMETRY(LineString, 4326),
-
-                    current_speed DOUBLE PRECISION,
-                    free_flow_speed DOUBLE PRECISION,
-
-                    delay_seconds INTEGER DEFAULT 0,
-
-                    congestion_level TEXT DEFAULT 'unknown',
-
-                    traffic_status TEXT DEFAULT 'unknown',
-
-                    source TEXT,
-
-                    source_id TEXT,
-
-                    observed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-                """
-            )
-
-            cursor.execute(
-                """
-                CREATE INDEX IF NOT EXISTS
-                idx_traffic_segments_geometry
-                ON traffic_segments
-                USING GIST (geometry)
-                """
-            )
-
-            cursor.execute(
-                """
-                CREATE INDEX IF NOT EXISTS
-                idx_traffic_segments_updated
-                ON traffic_segments(updated_at)
-                """
-            )
-
-            cursor.execute(
-                """
-                CREATE INDEX IF NOT EXISTS
-                idx_traffic_segments_status
-                ON traffic_segments(congestion_level)
-                """
-            )
-
-        connection.commit()
-
-        logger.info(
-            "traffic_segments table checked successfully"
-        )
-
-    except Exception as exc:
-
-        if connection:
-            connection.rollback()
-
-        logger.exception(
-            "Could not initialize traffic_segments table: %s",
-            exc,
-        )
-
-        raise
 
     finally:
 
@@ -427,15 +227,10 @@ def ensure_traffic_segments_table():
 # STARTUP
 # ============================================================
 
-
 @app.on_event("startup")
 def startup_event():
 
-    logger.info(
-        "Starting Global Camera Map API"
-    )
-
-    connection = None
+    logger.info("Starting Global Camera Map API")
 
     try:
 
@@ -445,35 +240,16 @@ def startup_event():
             cursor.execute("SELECT 1")
             cursor.fetchone()
 
-        logger.info(
-            "Database connection successful"
-        )
+        connection.close()
 
-    except Exception as exc:
+        logger.info("Database connection successful")
 
-        logger.exception(
-            "Database connection failed: %s",
-            exc,
-        )
-
-    finally:
-
-        if connection:
-            connection.close()
-
-    try:
         ensure_reports_table()
-    except Exception as exc:
-        logger.exception(
-            "Report table initialization failed: %s",
-            exc,
-        )
 
-    try:
-        ensure_traffic_segments_table()
     except Exception as exc:
-        logger.exception(
-            "Traffic table initialization failed: %s",
+
+        logger.error(
+            "Application started but database is unavailable: %s",
             exc,
         )
 
@@ -482,54 +258,38 @@ def startup_event():
 # SHUTDOWN
 # ============================================================
 
-
 @app.on_event("shutdown")
 def shutdown_event():
 
-    logger.info(
-        "Shutting down Global Camera Map API"
-    )
+    logger.info("Shutting down Global Camera Map API")
 
 
 # ============================================================
 # ROOT
 # ============================================================
 
-
 @app.get("/")
 def root():
 
     return {
         "name": "Global Camera Map API",
-        "version": "2.3.0",
+        "version": "2.1.0",
         "status": "running",
         "database": DB_NAME,
-
         "documentation": "/docs",
         "health": "/health",
-
         "cameras": "/api/cameras",
-        "camera_stats": "/api/cameras/stats",
-
+        "statistics": "/api/cameras/stats",
         "reports": "/api/reports",
         "pending_reports": "/api/reports/pending",
-
-        "search": "/api/search",
-
-        "india_cameras": "/api/india/cameras",
-
-        "traffic_segments": "/api/traffic/segments",
-        "traffic_stats": "/api/traffic/stats",
-
         "routing": "/api/route",
         "route_cameras": "/api/route/cameras",
     }
 
 
 # ============================================================
-# HEALTH
+# HEALTH CHECK
 # ============================================================
-
 
 @app.get("/health")
 def health_check():
@@ -541,7 +301,6 @@ def health_check():
         connection = get_db_connection()
 
         with connection.cursor() as cursor:
-
             cursor.execute("SELECT 1")
             cursor.fetchone()
 
@@ -573,7 +332,6 @@ def health_check():
 # DATABASE STATUS
 # ============================================================
 
-
 @app.get("/api/database/status")
 def database_status():
 
@@ -604,20 +362,10 @@ def database_status():
 
             camera_count = cursor.fetchone()
 
-            cursor.execute(
-                """
-                SELECT COUNT(*) AS count
-                FROM traffic_segments
-                """
-            )
-
-            traffic_count = cursor.fetchone()
-
         return {
             "status": "connected",
             "database": database["database"],
             "camera_count": camera_count["count"],
-            "traffic_segment_count": traffic_count["count"],
         }
 
     except Exception as exc:
@@ -639,9 +387,8 @@ def database_status():
 
 
 # ============================================================
-# GET CAMERAS
+# GET ALL CAMERAS
 # ============================================================
-
 
 @app.get("/api/cameras")
 def get_cameras(
@@ -744,7 +491,7 @@ def get_cameras(
 
     except Exception as exc:
 
-        logger.exception(
+        logger.error(
             "Failed to retrieve cameras: %s",
             exc,
         )
@@ -764,7 +511,6 @@ def get_cameras(
 # CAMERA STATISTICS
 # ============================================================
 
-
 @app.get("/api/cameras/stats")
 def camera_statistics():
 
@@ -778,25 +524,28 @@ def camera_statistics():
             cursor_factory=RealDictCursor
         ) as cursor:
 
+            # Total
             cursor.execute(
                 """
                 SELECT COUNT(*) AS total
                 FROM cameras
                 """
             )
+
             total = cursor.fetchone()["total"]
 
+            # Active
             cursor.execute(
                 """
                 SELECT COUNT(*) AS active
                 FROM cameras
-                WHERE LOWER(
-                    COALESCE(status, '')
-                ) = 'active'
+                WHERE LOWER(COALESCE(status, '')) = 'active'
                 """
             )
+
             active = cursor.fetchone()["active"]
 
+            # Verified
             cursor.execute(
                 """
                 SELECT COUNT(*) AS verified
@@ -806,8 +555,10 @@ def camera_statistics():
                 ) = 'verified'
                 """
             )
+
             verified = cursor.fetchone()["verified"]
 
+            # Pending verification
             cursor.execute(
                 """
                 SELECT COUNT(*) AS pending
@@ -817,38 +568,36 @@ def camera_statistics():
                 ) = 'pending'
                 """
             )
+
             pending = cursor.fetchone()["pending"]
 
+            # Speed cameras
             cursor.execute(
                 """
                 SELECT COUNT(*) AS count
                 FROM cameras
                 WHERE
-                    LOWER(
-                        COALESCE(camera_type, '')
-                    ) LIKE '%speed%'
-                    OR LOWER(
-                        COALESCE(enforcement_type, '')
-                    ) LIKE '%speed%'
+                    LOWER(COALESCE(camera_type, '')) LIKE '%speed%'
+                    OR LOWER(COALESCE(enforcement_type, '')) LIKE '%speed%'
                 """
             )
+
             speed_cameras = cursor.fetchone()["count"]
 
+            # Red light cameras
             cursor.execute(
                 """
                 SELECT COUNT(*) AS count
                 FROM cameras
                 WHERE
-                    LOWER(
-                        COALESCE(camera_type, '')
-                    ) LIKE '%red%'
-                    OR LOWER(
-                        COALESCE(enforcement_type, '')
-                    ) LIKE '%red%'
+                    LOWER(COALESCE(camera_type, '')) LIKE '%red%'
+                    OR LOWER(COALESCE(enforcement_type, '')) LIKE '%red%'
                 """
             )
+
             red_light_cameras = cursor.fetchone()["count"]
 
+            # Cities
             cursor.execute(
                 """
                 SELECT COUNT(DISTINCT city) AS count
@@ -857,8 +606,10 @@ def camera_statistics():
                   AND TRIM(city) <> ''
                 """
             )
+
             cities = cursor.fetchone()["count"]
 
+            # Cameras by state
             cursor.execute(
                 """
                 SELECT
@@ -869,8 +620,10 @@ def camera_statistics():
                 ORDER BY count DESC
                 """
             )
+
             by_state = cursor.fetchall()
 
+            # Cameras by type
             cursor.execute(
                 """
                 SELECT
@@ -884,6 +637,7 @@ def camera_statistics():
                 ORDER BY count DESC
                 """
             )
+
             by_type = cursor.fetchall()
 
         return {
@@ -891,16 +645,18 @@ def camera_statistics():
             "active": active,
             "verified": verified,
             "pending": pending,
+
             "speed_cameras": speed_cameras,
             "red_light_cameras": red_light_cameras,
             "cities": cities,
+
             "by_state": by_state,
             "by_camera_type": by_type,
         }
 
     except Exception as exc:
 
-        logger.exception(
+        logger.error(
             "Failed to retrieve statistics: %s",
             exc,
         )
@@ -919,7 +675,6 @@ def camera_statistics():
 # ============================================================
 # GET SINGLE CAMERA
 # ============================================================
-
 
 @app.get("/api/cameras/{camera_id}")
 def get_camera(camera_id: int):
@@ -963,6 +718,7 @@ def get_camera(camera_id: int):
             camera = cursor.fetchone()
 
         if not camera:
+
             raise HTTPException(
                 status_code=404,
                 detail="Camera not found",
@@ -975,7 +731,7 @@ def get_camera(camera_id: int):
 
     except Exception as exc:
 
-        logger.exception(
+        logger.error(
             "Failed to retrieve camera %s: %s",
             camera_id,
             exc,
@@ -995,7 +751,6 @@ def get_camera(camera_id: int):
 # ============================================================
 # CREATE CAMERA
 # ============================================================
-
 
 @app.post("/api/cameras")
 def create_camera(camera: CameraCreate):
@@ -1072,7 +827,7 @@ def create_camera(camera: CameraCreate):
                     camera.latitude,
                     camera.longitude,
 
-                    # PostGIS = longitude, latitude
+                    # PostGIS expects longitude first
                     camera.longitude,
                     camera.latitude,
 
@@ -1102,7 +857,7 @@ def create_camera(camera: CameraCreate):
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.error(
             "Failed to create camera: %s",
             exc,
         )
@@ -1121,7 +876,6 @@ def create_camera(camera: CameraCreate):
 # ============================================================
 # UPDATE CAMERA
 # ============================================================
-
 
 @app.put("/api/cameras/{camera_id}")
 def update_camera(
@@ -1169,18 +923,16 @@ def update_camera(
 
         for field, value in update_data.items():
 
-            if field in allowed_fields:
+            if field not in allowed_fields:
+                continue
 
-                fields.append(
-                    f"{field} = %s"
-                )
+            fields.append(
+                f"{field} = %s"
+            )
 
-                values.append(value)
+            values.append(value)
 
-        # ----------------------------------------------------
-        # Keep PostGIS location synchronized
-        # ----------------------------------------------------
-
+        # If coordinates are updated, update PostGIS location too.
         if (
             "latitude" in update_data
             or "longitude" in update_data
@@ -1296,7 +1048,7 @@ def update_camera(
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.error(
             "Failed to update camera %s: %s",
             camera_id,
             exc,
@@ -1316,7 +1068,6 @@ def update_camera(
 # ============================================================
 # DELETE CAMERA
 # ============================================================
-
 
 @app.delete("/api/cameras/{camera_id}")
 def delete_camera(camera_id: int):
@@ -1366,7 +1117,7 @@ def delete_camera(camera_id: int):
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.error(
             "Failed to delete camera %s: %s",
             camera_id,
             exc,
@@ -1387,7 +1138,6 @@ def delete_camera(camera_id: int):
 # REPORT CAMERA
 # ============================================================
 
-
 @app.post("/api/reports")
 def report_camera(report: CameraReport):
 
@@ -1397,31 +1147,7 @@ def report_camera(report: CameraReport):
 
         connection = get_db_connection()
 
-        # Ensure table exists before inserting.
-        with connection.cursor() as cursor:
-
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS camera_reports (
-                    id SERIAL PRIMARY KEY,
-                    latitude DOUBLE PRECISION NOT NULL,
-                    longitude DOUBLE PRECISION NOT NULL,
-                    city VARCHAR(255),
-                    state VARCHAR(255),
-                    road_name VARCHAR(500),
-                    camera_type VARCHAR(255),
-                    reporter_name VARCHAR(255),
-                    notes TEXT,
-                    description TEXT,
-                    source VARCHAR(500),
-                    source_url TEXT,
-                    image_path TEXT,
-                    status VARCHAR(50) DEFAULT 'pending',
-                    created_at TIMESTAMP DEFAULT NOW(),
-                    updated_at TIMESTAMP DEFAULT NOW()
-                )
-                """
-            )
+        ensure_reports_table()
 
         with connection.cursor(
             cursor_factory=RealDictCursor
@@ -1439,8 +1165,7 @@ def report_camera(report: CameraReport):
                     description,
                     source,
                     source_url,
-                    status,
-                    updated_at
+                    status
                 )
                 VALUES (
                     %s,
@@ -1452,8 +1177,7 @@ def report_camera(report: CameraReport):
                     %s,
                     %s,
                     %s,
-                    'pending',
-                    NOW()
+                    'pending'
                 )
                 RETURNING *
                 """,
@@ -1484,7 +1208,7 @@ def report_camera(report: CameraReport):
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.error(
             "Failed to submit camera report: %s",
             exc,
         )
@@ -1501,9 +1225,8 @@ def report_camera(report: CameraReport):
 
 
 # ============================================================
-# PENDING REPORTS
+# GET PENDING REPORTS
 # ============================================================
-
 
 @app.get("/api/reports/pending")
 def get_pending_reports():
@@ -1543,7 +1266,7 @@ def get_pending_reports():
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.error(
             "Failed to retrieve pending reports: %s",
             exc,
         )
@@ -1560,9 +1283,8 @@ def get_pending_reports():
 
 
 # ============================================================
-# ALL REPORTS
+# GET ALL REPORTS
 # ============================================================
-
 
 @app.get("/api/reports")
 def get_reports(
@@ -1618,7 +1340,7 @@ def get_reports(
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.error(
             "Failed to retrieve reports: %s",
             exc,
         )
@@ -1638,7 +1360,6 @@ def get_reports(
 # APPROVE REPORT
 # ============================================================
 
-
 @app.post("/api/reports/{report_id}/approve")
 def approve_report(report_id: int):
 
@@ -1654,12 +1375,12 @@ def approve_report(report_id: int):
             cursor_factory=RealDictCursor
         ) as cursor:
 
+            # Get report
             cursor.execute(
                 """
                 SELECT *
                 FROM camera_reports
                 WHERE id = %s
-                FOR UPDATE
                 """,
                 (report_id,),
             )
@@ -1673,11 +1394,8 @@ def approve_report(report_id: int):
                     detail="Report not found",
                 )
 
-            current_status = str(
-                report["status"] or ""
-            ).strip().lower()
-
-            if current_status != "pending":
+            # Prevent approving the same report twice
+            if str(report["status"]).lower() != "pending":
 
                 raise HTTPException(
                     status_code=400,
@@ -1687,133 +1405,63 @@ def approve_report(report_id: int):
                     ),
                 )
 
-            camera_type = (
-                report.get("camera_type")
-                or "Traffic Camera"
-            )
-
-            # ------------------------------------------------
-            # Find duplicate camera
-            # ------------------------------------------------
-
+            # Create camera
             cursor.execute(
                 """
-                SELECT id
-                FROM cameras
-                WHERE
-                    latitude = %s
-                    AND longitude = %s
-                    AND COALESCE(city, '') =
-                        COALESCE(%s, '')
-                    AND COALESCE(road_name, '') =
-                        COALESCE(%s, '')
-                    AND LOWER(
-                        COALESCE(camera_type, '')
-                    ) = LOWER(%s)
-                LIMIT 1
+                INSERT INTO cameras (
+                    latitude,
+                    longitude,
+                    location,
+                    country,
+                    city,
+                    state,
+                    road_name,
+                    camera_type,
+                    status,
+                    verification_status,
+                    source,
+                    source_url
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    ST_SetSRID(
+                        ST_MakePoint(%s, %s),
+                        4326
+                    )::geography,
+                    'India',
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    'active',
+                    'pending',
+                    %s,
+                    %s
+                )
+                RETURNING id
                 """,
                 (
                     report["latitude"],
                     report["longitude"],
-                    report.get("city"),
-                    report.get("road_name"),
-                    camera_type,
+
+                    # Longitude first for PostGIS
+                    report["longitude"],
+                    report["latitude"],
+
+                    report["city"],
+                    report["state"],
+                    report["road_name"],
+                    report["camera_type"]
+                    or "Traffic Camera",
+                    report["source"],
+                    report["source_url"],
                 ),
             )
 
-            existing_camera = cursor.fetchone()
+            new_camera = cursor.fetchone()
 
-            # ------------------------------------------------
-            # Create camera when necessary
-            # ------------------------------------------------
-
-            if existing_camera:
-
-                camera_id = existing_camera["id"]
-
-                logger.info(
-                    "Report %s matched camera %s",
-                    report_id,
-                    camera_id,
-                )
-
-            else:
-
-                cursor.execute(
-                    """
-                    INSERT INTO cameras (
-                        latitude,
-                        longitude,
-                        location,
-                        country,
-                        city,
-                        state,
-                        road_name,
-                        camera_type,
-                        status,
-                        verification_status,
-                        source,
-                        source_url
-                    )
-                    VALUES (
-                        %s,
-                        %s,
-                        ST_SetSRID(
-                            ST_MakePoint(%s, %s),
-                            4326
-                        )::geography,
-                        'India',
-                        %s,
-                        %s,
-                        %s,
-                        %s,
-                        'active',
-                        'pending',
-                        %s,
-                        %s
-                    )
-                    RETURNING id
-                    """,
-                    (
-                        report["latitude"],
-                        report["longitude"],
-
-                        # PostGIS longitude first
-                        report["longitude"],
-                        report["latitude"],
-
-                        report.get("city"),
-                        report.get("state"),
-                        report.get("road_name"),
-                        camera_type,
-
-                        report.get("source")
-                        or "User Report",
-
-                        report.get("source_url"),
-                    ),
-                )
-
-                new_camera = cursor.fetchone()
-
-                if not new_camera:
-
-                    raise RuntimeError(
-                        "Camera insertion returned no ID"
-                    )
-
-                camera_id = new_camera["id"]
-
-                logger.info(
-                    "Created camera %s from report %s",
-                    camera_id,
-                    report_id,
-                )
-
-            # ------------------------------------------------
-            # Approve report
-            # ------------------------------------------------
-
+            # Mark report approved
             cursor.execute(
                 """
                 UPDATE camera_reports
@@ -1821,25 +1469,16 @@ def approve_report(report_id: int):
                     status = 'approved',
                     updated_at = NOW()
                 WHERE id = %s
-                RETURNING id, status, updated_at
                 """,
                 (report_id,),
             )
-
-            updated_report = cursor.fetchone()
-
-            if not updated_report:
-
-                raise RuntimeError(
-                    "Report status update failed"
-                )
 
         connection.commit()
 
         return {
             "success": True,
             "report_id": report_id,
-            "camera_id": camera_id,
+            "camera_id": new_camera["id"],
             "status": "approved",
         }
 
@@ -1851,7 +1490,7 @@ def approve_report(report_id: int):
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.error(
             "Failed to approve report %s: %s",
             report_id,
             exc,
@@ -1872,7 +1511,6 @@ def approve_report(report_id: int):
 # REJECT REPORT
 # ============================================================
 
-
 @app.post("/api/reports/{report_id}/reject")
 def reject_report(report_id: int):
 
@@ -1890,56 +1528,26 @@ def reject_report(report_id: int):
 
             cursor.execute(
                 """
-                SELECT id, status
-                FROM camera_reports
-                WHERE id = %s
-                FOR UPDATE
-                """,
-                (report_id,),
-            )
-
-            report = cursor.fetchone()
-
-            if not report:
-
-                raise HTTPException(
-                    status_code=404,
-                    detail="Report not found",
-                )
-
-            current_status = str(
-                report["status"] or ""
-            ).strip().lower()
-
-            if current_status != "pending":
-
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        f"Report is already "
-                        f"{report['status']}"
-                    ),
-                )
-
-            cursor.execute(
-                """
                 UPDATE camera_reports
                 SET
                     status = 'rejected',
                     updated_at = NOW()
                 WHERE id = %s
-                RETURNING id, status, updated_at
+                RETURNING id
                 """,
                 (report_id,),
             )
 
             result = cursor.fetchone()
 
-            if not result:
+        if not result:
 
-                raise RuntimeError(
-                    "Report rejection failed"
-                )
+            connection.rollback()
+
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found",
+            )
 
         connection.commit()
 
@@ -1957,7 +1565,7 @@ def reject_report(report_id: int):
         if connection:
             connection.rollback()
 
-        logger.exception(
+        logger.error(
             "Failed to reject report %s: %s",
             report_id,
             exc,
@@ -1977,7 +1585,6 @@ def reject_report(report_id: int):
 # ============================================================
 # SEARCH CAMERAS
 # ============================================================
-
 
 @app.get("/api/search")
 def search_cameras(
@@ -2047,7 +1654,7 @@ def search_cameras(
 
     except Exception as exc:
 
-        logger.exception(
+        logger.error(
             "Camera search failed: %s",
             exc,
         )
@@ -2066,7 +1673,6 @@ def search_cameras(
 # ============================================================
 # INDIA CAMERAS
 # ============================================================
-
 
 @app.get("/api/india/cameras")
 def get_india_cameras(
@@ -2125,7 +1731,7 @@ def get_india_cameras(
 
     except Exception as exc:
 
-        logger.exception(
+        logger.error(
             "Failed to retrieve India cameras: %s",
             exc,
         )
@@ -2142,784 +1748,8 @@ def get_india_cameras(
 
 
 # ============================================================
-# TRAFFIC SEGMENTS
-# ============================================================
-
-
-@app.get("/api/traffic/segments")
-def get_traffic_segments(
-    congestion_level: Optional[str] = Query(
-        default=None
-    ),
-    traffic_status: Optional[str] = Query(
-        default=None
-    ),
-    source: Optional[str] = Query(
-        default=None
-    ),
-    limit: int = Query(
-        default=5000,
-        ge=1,
-        le=50000,
-    ),
-):
-
-    connection = None
-
-    try:
-
-        connection = get_db_connection()
-
-        query = """
-            SELECT
-                id,
-                road_name,
-                start_latitude,
-                start_longitude,
-                end_latitude,
-                end_longitude,
-                ST_AsGeoJSON(geometry)::json
-                    AS geometry,
-                current_speed,
-                free_flow_speed,
-                delay_seconds,
-                congestion_level,
-                traffic_status,
-                source,
-                source_id,
-                observed_at,
-                updated_at,
-                created_at
-            FROM traffic_segments
-            WHERE 1=1
-        """
-
-        values = []
-
-        if congestion_level:
-
-            query += """
-                AND LOWER(congestion_level)
-                    = LOWER(%s)
-            """
-
-            values.append(congestion_level)
-
-        if traffic_status:
-
-            query += """
-                AND LOWER(traffic_status)
-                    = LOWER(%s)
-            """
-
-            values.append(traffic_status)
-
-        if source:
-
-            query += """
-                AND LOWER(source)
-                    = LOWER(%s)
-            """
-
-            values.append(source)
-
-        query += """
-            ORDER BY updated_at DESC
-            LIMIT %s
-        """
-
-        values.append(limit)
-
-        with connection.cursor(
-            cursor_factory=RealDictCursor
-        ) as cursor:
-
-            cursor.execute(
-                query,
-                values,
-            )
-
-            segments = cursor.fetchall()
-
-        return {
-            "count": len(segments),
-            "segments": segments,
-        }
-
-    except Exception as exc:
-
-        logger.exception(
-            "Failed to retrieve traffic segments: %s",
-            exc,
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to retrieve traffic segments",
-        )
-
-    finally:
-
-        if connection:
-            connection.close()
-
-
-# ============================================================
-# GET SINGLE TRAFFIC SEGMENT
-# ============================================================
-
-
-@app.get("/api/traffic/segments/{segment_id}")
-def get_traffic_segment(segment_id: int):
-
-    connection = None
-
-    try:
-
-        connection = get_db_connection()
-
-        with connection.cursor(
-            cursor_factory=RealDictCursor
-        ) as cursor:
-
-            cursor.execute(
-                """
-                SELECT
-                    id,
-                    road_name,
-                    start_latitude,
-                    start_longitude,
-                    end_latitude,
-                    end_longitude,
-                    ST_AsGeoJSON(geometry)::json
-                        AS geometry,
-                    current_speed,
-                    free_flow_speed,
-                    delay_seconds,
-                    congestion_level,
-                    traffic_status,
-                    source,
-                    source_id,
-                    observed_at,
-                    updated_at,
-                    created_at
-                FROM traffic_segments
-                WHERE id = %s
-                """,
-                (segment_id,),
-            )
-
-            segment = cursor.fetchone()
-
-        if not segment:
-
-            raise HTTPException(
-                status_code=404,
-                detail="Traffic segment not found",
-            )
-
-        return segment
-
-    except HTTPException:
-        raise
-
-    except Exception as exc:
-
-        logger.exception(
-            "Failed to retrieve traffic segment %s: %s",
-            segment_id,
-            exc,
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to retrieve traffic segment",
-        )
-
-    finally:
-
-        if connection:
-            connection.close()
-
-
-# ============================================================
-# CREATE TRAFFIC SEGMENT
-# ============================================================
-
-
-@app.post("/api/traffic/segments")
-def create_traffic_segment(
-    segment: TrafficSegmentCreate,
-):
-
-    connection = None
-
-    try:
-
-        connection = get_db_connection()
-
-        with connection.cursor(
-            cursor_factory=RealDictCursor
-        ) as cursor:
-
-            cursor.execute(
-                """
-                INSERT INTO traffic_segments (
-                    road_name,
-                    start_latitude,
-                    start_longitude,
-                    end_latitude,
-                    end_longitude,
-                    geometry,
-                    current_speed,
-                    free_flow_speed,
-                    delay_seconds,
-                    congestion_level,
-                    traffic_status,
-                    source,
-                    source_id,
-                    observed_at,
-                    updated_at
-                )
-                VALUES (
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    ST_SetSRID(
-                        ST_MakeLine(
-                            ST_MakePoint(
-                                %s,
-                                %s
-                            ),
-                            ST_MakePoint(
-                                %s,
-                                %s
-                            )
-                        ),
-                        4326
-                    ),
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    COALESCE(
-                        %s,
-                        NOW()
-                    ),
-                    NOW()
-                )
-                RETURNING
-                    id,
-                    road_name,
-                    start_latitude,
-                    start_longitude,
-                    end_latitude,
-                    end_longitude,
-                    current_speed,
-                    free_flow_speed,
-                    delay_seconds,
-                    congestion_level,
-                    traffic_status,
-                    source,
-                    source_id,
-                    observed_at,
-                    updated_at,
-                    created_at
-                """,
-                (
-                    segment.road_name,
-
-                    segment.start_latitude,
-                    segment.start_longitude,
-
-                    segment.end_latitude,
-                    segment.end_longitude,
-
-                    # LineString:
-                    # longitude, latitude
-                    segment.start_longitude,
-                    segment.start_latitude,
-
-                    segment.end_longitude,
-                    segment.end_latitude,
-
-                    segment.current_speed,
-                    segment.free_flow_speed,
-                    segment.delay_seconds,
-                    segment.congestion_level,
-                    segment.traffic_status,
-                    segment.source,
-                    segment.source_id,
-                    segment.observed_at,
-                ),
-            )
-
-            created_segment = cursor.fetchone()
-
-        connection.commit()
-
-        return {
-            "success": True,
-            "segment": created_segment,
-        }
-
-    except Exception as exc:
-
-        if connection:
-            connection.rollback()
-
-        logger.exception(
-            "Failed to create traffic segment: %s",
-            exc,
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to create traffic segment",
-        )
-
-    finally:
-
-        if connection:
-            connection.close()
-
-
-# ============================================================
-# UPDATE TRAFFIC SEGMENT
-# ============================================================
-
-
-@app.put("/api/traffic/segments/{segment_id}")
-def update_traffic_segment(
-    segment_id: int,
-    segment: TrafficSegmentUpdate,
-):
-
-    connection = None
-
-    try:
-
-        update_data = segment.model_dump(
-            exclude_unset=True,
-            exclude_none=True,
-        )
-
-        if not update_data:
-
-            raise HTTPException(
-                status_code=400,
-                detail="No fields provided for update",
-            )
-
-        connection = get_db_connection()
-
-        # ----------------------------------------------------
-        # Get existing coordinates first
-        # ----------------------------------------------------
-
-        with connection.cursor() as cursor:
-
-            cursor.execute(
-                """
-                SELECT
-                    start_latitude,
-                    start_longitude,
-                    end_latitude,
-                    end_longitude
-                FROM traffic_segments
-                WHERE id = %s
-                """,
-                (segment_id,),
-            )
-
-            existing = cursor.fetchone()
-
-        if not existing:
-
-            raise HTTPException(
-                status_code=404,
-                detail="Traffic segment not found",
-            )
-
-        start_latitude = update_data.get(
-            "start_latitude",
-            existing[0],
-        )
-
-        start_longitude = update_data.get(
-            "start_longitude",
-            existing[1],
-        )
-
-        end_latitude = update_data.get(
-            "end_latitude",
-            existing[2],
-        )
-
-        end_longitude = update_data.get(
-            "end_longitude",
-            existing[3],
-        )
-
-        fields = []
-        values = []
-
-        allowed_fields = {
-            "road_name",
-            "start_latitude",
-            "start_longitude",
-            "end_latitude",
-            "end_longitude",
-            "current_speed",
-            "free_flow_speed",
-            "delay_seconds",
-            "congestion_level",
-            "traffic_status",
-            "source",
-            "source_id",
-            "observed_at",
-        }
-
-        for field, value in update_data.items():
-
-            if field in allowed_fields:
-
-                fields.append(
-                    f"{field} = %s"
-                )
-
-                values.append(value)
-
-        # ----------------------------------------------------
-        # Rebuild geometry whenever coordinates are updated
-        # ----------------------------------------------------
-
-        if any(
-            coordinate in update_data
-            for coordinate in [
-                "start_latitude",
-                "start_longitude",
-                "end_latitude",
-                "end_longitude",
-            ]
-        ):
-
-            fields.append(
-                """
-                geometry = ST_SetSRID(
-                    ST_MakeLine(
-                        ST_MakePoint(%s, %s),
-                        ST_MakePoint(%s, %s)
-                    ),
-                    4326
-                )
-                """
-            )
-
-            values.extend(
-                [
-                    start_longitude,
-                    start_latitude,
-                    end_longitude,
-                    end_latitude,
-                ]
-            )
-
-        fields.append(
-            "updated_at = NOW()"
-        )
-
-        values.append(segment_id)
-
-        query = f"""
-            UPDATE traffic_segments
-            SET {", ".join(fields)}
-            WHERE id = %s
-            RETURNING
-                id,
-                road_name,
-                start_latitude,
-                start_longitude,
-                end_latitude,
-                end_longitude,
-                current_speed,
-                free_flow_speed,
-                delay_seconds,
-                congestion_level,
-                traffic_status,
-                source,
-                source_id,
-                observed_at,
-                updated_at,
-                created_at
-        """
-
-        with connection.cursor(
-            cursor_factory=RealDictCursor
-        ) as cursor:
-
-            cursor.execute(
-                query,
-                values,
-            )
-
-            updated_segment = cursor.fetchone()
-
-        if not updated_segment:
-
-            connection.rollback()
-
-            raise HTTPException(
-                status_code=404,
-                detail="Traffic segment not found",
-            )
-
-        connection.commit()
-
-        return {
-            "success": True,
-            "segment": updated_segment,
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as exc:
-
-        if connection:
-            connection.rollback()
-
-        logger.exception(
-            "Failed to update traffic segment %s: %s",
-            segment_id,
-            exc,
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to update traffic segment",
-        )
-
-    finally:
-
-        if connection:
-            connection.close()
-
-
-# ============================================================
-# DELETE TRAFFIC SEGMENT
-# ============================================================
-
-
-@app.delete("/api/traffic/segments/{segment_id}")
-def delete_traffic_segment(segment_id: int):
-
-    connection = None
-
-    try:
-
-        connection = get_db_connection()
-
-        with connection.cursor(
-            cursor_factory=RealDictCursor
-        ) as cursor:
-
-            cursor.execute(
-                """
-                DELETE FROM traffic_segments
-                WHERE id = %s
-                RETURNING id
-                """,
-                (segment_id,),
-            )
-
-            deleted = cursor.fetchone()
-
-        if not deleted:
-
-            connection.rollback()
-
-            raise HTTPException(
-                status_code=404,
-                detail="Traffic segment not found",
-            )
-
-        connection.commit()
-
-        return {
-            "success": True,
-            "deleted_id": deleted["id"],
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as exc:
-
-        if connection:
-            connection.rollback()
-
-        logger.exception(
-            "Failed to delete traffic segment %s: %s",
-            segment_id,
-            exc,
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to delete traffic segment",
-        )
-
-    finally:
-
-        if connection:
-            connection.close()
-
-
-# ============================================================
-# TRAFFIC STATISTICS
-# ============================================================
-
-
-@app.get("/api/traffic/stats")
-def traffic_statistics():
-
-    connection = None
-
-    try:
-
-        connection = get_db_connection()
-
-        with connection.cursor(
-            cursor_factory=RealDictCursor
-        ) as cursor:
-
-            cursor.execute(
-                """
-                SELECT COUNT(*) AS total
-                FROM traffic_segments
-                """
-            )
-
-            total = cursor.fetchone()["total"]
-
-            cursor.execute(
-                """
-                SELECT COUNT(*) AS count
-                FROM traffic_segments
-                WHERE LOWER(
-                    COALESCE(congestion_level, '')
-                ) = 'low'
-                """
-            )
-
-            low = cursor.fetchone()["count"]
-
-            cursor.execute(
-                """
-                SELECT COUNT(*) AS count
-                FROM traffic_segments
-                WHERE LOWER(
-                    COALESCE(congestion_level, '')
-                ) = 'moderate'
-                """
-            )
-
-            moderate = cursor.fetchone()["count"]
-
-            cursor.execute(
-                """
-                SELECT COUNT(*) AS count
-                FROM traffic_segments
-                WHERE LOWER(
-                    COALESCE(congestion_level, '')
-                ) = 'high'
-                """
-            )
-
-            high = cursor.fetchone()["count"]
-
-            cursor.execute(
-                """
-                SELECT COUNT(*) AS count
-                FROM traffic_segments
-                WHERE LOWER(
-                    COALESCE(congestion_level, '')
-                ) = 'severe'
-                """
-            )
-
-            severe = cursor.fetchone()["count"]
-
-            cursor.execute(
-                """
-                SELECT
-                    COALESCE(
-                        congestion_level,
-                        'unknown'
-                    ) AS congestion_level,
-                    COUNT(*) AS count
-                FROM traffic_segments
-                GROUP BY congestion_level
-                ORDER BY count DESC
-                """
-            )
-
-            by_congestion = cursor.fetchall()
-
-            cursor.execute(
-                """
-                SELECT
-                    COALESCE(
-                        traffic_status,
-                        'unknown'
-                    ) AS traffic_status,
-                    COUNT(*) AS count
-                FROM traffic_segments
-                GROUP BY traffic_status
-                ORDER BY count DESC
-                """
-            )
-
-            by_status = cursor.fetchall()
-
-        return {
-            "total": total,
-            "low": low,
-            "moderate": moderate,
-            "high": high,
-            "severe": severe,
-            "by_congestion": by_congestion,
-            "by_status": by_status,
-        }
-
-    except Exception as exc:
-
-        logger.exception(
-            "Failed to retrieve traffic statistics: %s",
-            exc,
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to retrieve traffic statistics",
-        )
-
-    finally:
-
-        if connection:
-            connection.close()
-
-
-# ============================================================
 # RUN DIRECTLY
 # ============================================================
-
 
 if __name__ == "__main__":
 

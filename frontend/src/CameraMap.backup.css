@@ -1,0 +1,880 @@
+.camera-map-container {
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24px;
+  background: #f5f7fb;
+  color: #1f2937;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+.camera-map-container *,
+.camera-map-container *::before,
+.camera-map-container *::after {
+  box-sizing: border-box;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.dashboard-header {
+  width: 100%;
+  margin-bottom: 24px;
+  padding: 24px 28px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #111827;
+}
+
+.dashboard-header p {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: #6b7280;
+}
+
+
+/* ============================================================
+   STATISTICS
+   ============================================================ */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  min-width: 0;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.stat-value {
+  margin-bottom: 6px;
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stat-label {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #6b7280;
+}
+
+
+/* ============================================================
+   FILTER SECTION
+   ============================================================ */
+
+.filter-section {
+  margin-bottom: 24px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.filter-section h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.camera-count {
+  margin-bottom: 18px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.camera-count strong {
+  color: #111827;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 2fr)
+    repeat(4, minmax(140px, 1fr))
+    auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.search-input,
+.filter-grid select,
+.route-controls input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.search-input::placeholder,
+.route-controls input::placeholder {
+  color: #9ca3af;
+}
+
+.search-input:focus,
+.filter-grid select:focus,
+.route-controls input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.filter-grid button,
+.route-controls button,
+.section-heading-row button {
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease,
+    opacity 0.15s ease;
+}
+
+.filter-grid button:hover,
+.route-controls button:hover,
+.section-heading-row button:hover {
+  background: #1d4ed8;
+}
+
+.filter-grid button:active,
+.route-controls button:active,
+.section-heading-row button:active {
+  transform: translateY(1px);
+}
+
+.filter-grid button:disabled,
+.route-controls button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* ============================================================
+   ROUTE PLANNER
+   ============================================================ */
+
+.route-section {
+  margin-bottom: 24px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.route-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.route-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.route-header p {
+  margin: 7px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.route-controls {
+  display: grid;
+  grid-template-columns:
+    minmax(200px, 1fr)
+    minmax(200px, 1fr)
+    auto
+    auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.route-controls button:last-child {
+  background: #6b7280;
+}
+
+.route-controls button:last-child:hover {
+  background: #4b5563;
+}
+
+.route-error {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+
+/* ============================================================
+   MAP SECTION
+   ============================================================ */
+
+.map-section {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #e5e7eb;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.08);
+}
+
+.camera-map {
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+  z-index: 1;
+}
+
+.map-loading,
+.map-error {
+  position: absolute;
+  z-index: 1000;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.16);
+  font-size: 14px;
+}
+
+.map-loading {
+  color: #374151;
+}
+
+.map-error {
+  min-width: 260px;
+  border: 1px solid #fecaca;
+  background: rgba(254, 242, 242, 0.98);
+  color: #b91c1c;
+}
+
+.map-error strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+
+/* ============================================================
+   LEAFLET
+   ============================================================ */
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+.leaflet-control-zoom {
+  border: 0 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15) !important;
+}
+
+.leaflet-control-zoom a {
+  color: #111827 !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #f3f4f6 !important;
+}
+
+.leaflet-control-attribution {
+  font-size: 11px;
+}
+
+
+/* ============================================================
+   CAMERA POPUP
+   ============================================================ */
+
+.camera-popup {
+  min-width: 220px;
+  max-width: 320px;
+  color: #1f2937;
+}
+
+.camera-popup h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #111827;
+}
+
+.camera-popup p {
+  margin: 6px 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.camera-popup strong {
+  color: #374151;
+}
+
+.camera-popup a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.camera-popup a:hover {
+  text-decoration: underline;
+}
+
+
+/* ============================================================
+   MAP LEGEND
+   ============================================================ */
+
+.map-legend {
+  margin-bottom: 24px;
+  padding: 20px 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.map-legend h2 {
+  margin: 0 0 16px;
+  font-size: 19px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.legend-item img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+
+/* ============================================================
+   ROUTE CAMERA SECTION
+   ============================================================ */
+
+.route-camera-section {
+  margin-bottom: 24px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.section-heading-row h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.section-heading-row p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.route-camera-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.route-camera-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.route-camera-card:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.route-camera-card strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #111827;
+  font-size: 14px;
+}
+
+.route-camera-card > div:first-child > div {
+  margin-top: 3px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.route-distance {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2563eb;
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   BREAKDOWN SECTIONS
+   ============================================================ */
+
+.breakdown-section {
+  margin-bottom: 24px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.breakdown-section h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 42px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f0f1f3;
+  font-size: 14px;
+}
+
+.breakdown-row:last-child {
+  border-bottom: 0;
+}
+
+.breakdown-row span {
+  color: #374151;
+}
+
+.breakdown-row strong {
+  color: #111827;
+  font-weight: 700;
+}
+
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+
+.reports-section {
+  margin-bottom: 24px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.reports-section .section-heading-row {
+  margin-bottom: 18px;
+}
+
+.reports-section .section-heading-row strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.reports-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.report-card {
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.report-card h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.report-card p {
+  margin: 7px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.report-card strong {
+  color: #374151;
+}
+
+
+/* ============================================================
+   EMPTY STATES
+   ============================================================ */
+
+.empty-state {
+  padding: 22px;
+  text-align: center;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+
+/* ============================================================
+   RESPONSIVE — LARGE TABLETS
+   ============================================================ */
+
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filter-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-grid .search-input {
+    grid-column: 1 / -1;
+  }
+
+  .filter-grid button {
+    width: 100%;
+  }
+
+  .route-controls {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .route-controls button {
+    width: 100%;
+  }
+}
+
+
+/* ============================================================
+   RESPONSIVE — TABLETS
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .camera-map-container {
+    padding: 14px;
+  }
+
+  .dashboard-header {
+    padding: 20px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 25px;
+  }
+
+  .stats-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .filter-section,
+  .route-section,
+  .map-legend,
+  .route-camera-section,
+  .breakdown-section,
+  .reports-section {
+    padding: 18px;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-grid .search-input {
+    grid-column: auto;
+  }
+
+  .route-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .map-section {
+    height: 500px;
+  }
+
+  .camera-map {
+    min-height: 500px;
+  }
+
+  .reports-list {
+    grid-template-columns: 1fr;
+  }
+
+  .legend-items {
+    gap: 14px 20px;
+  }
+}
+
+
+/* ============================================================
+   RESPONSIVE — MOBILE
+   ============================================================ */
+
+@media (max-width: 480px) {
+  .camera-map-container {
+    padding: 10px;
+  }
+
+  .dashboard-header {
+    margin-bottom: 14px;
+    padding: 17px;
+    border-radius: 10px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 22px;
+  }
+
+  .dashboard-header p {
+    font-size: 13px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .stat-card {
+    padding: 13px;
+    border-radius: 9px;
+  }
+
+  .stat-value {
+    font-size: 21px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .filter-section,
+  .route-section,
+  .map-legend,
+  .route-camera-section,
+  .breakdown-section,
+  .reports-section {
+    margin-bottom: 14px;
+    padding: 15px;
+    border-radius: 10px;
+  }
+
+  .filter-section h2,
+  .route-header h2,
+  .map-legend h2,
+  .route-camera-section h2,
+  .breakdown-section h2,
+  .reports-section h2 {
+    font-size: 18px;
+  }
+
+  .map-section {
+    height: 430px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+  }
+
+  .camera-map {
+    min-height: 430px;
+  }
+
+  .route-camera-card {
+    align-items: flex-start;
+    padding: 13px;
+  }
+
+  .route-distance {
+    font-size: 13px;
+  }
+
+  .section-heading-row {
+    align-items: flex-start;
+  }
+
+  .section-heading-row button {
+    flex: 0 0 auto;
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+
+  .legend-items {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .legend-item {
+    font-size: 13px;
+  }
+
+  .map-loading,
+  .map-error {
+    top: 10px;
+    max-width: calc(100% - 20px);
+    font-size: 12px;
+  }
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

@@ -1,95 +1,151 @@
-import { useEffect, useState } from "react";
+import React from "react";
+import { NavLink, Routes, Route } from "react-router-dom";
+
+import Dashboard from "./components/Dashboard";
+import CameraMap from "./components/CameraMap";
+import PendingCameras from "./components/PendingCameras";
+import ReportCamera from "./components/ReportCamera";
+
+import "./App.css";
+
+
+function Navigation() {
+  return (
+    <header className="app-header">
+
+      {/* BRAND */}
+
+      <div className="app-brand">
+
+        <div className="brand-icon">
+          🌍
+        </div>
+
+        <div className="brand-text">
+          <div className="brand-title">
+            Global Camera Map
+          </div>
+
+          <div className="brand-subtitle">
+            India Traffic Intelligence
+          </div>
+        </div>
+
+      </div>
+
+
+      {/* NAVIGATION */}
+
+      <nav className="main-navigation">
+
+        <NavLink
+          to="/dashboard"
+          className={({ isActive }) =>
+            `nav-item ${isActive ? "active" : ""}`
+          }
+        >
+          <span className="nav-icon">🚦</span>
+          <span>Dashboard</span>
+        </NavLink>
+
+
+        <NavLink
+          to="/map"
+          className={({ isActive }) =>
+            `nav-item ${isActive ? "active" : ""}`
+          }
+        >
+          <span className="nav-icon">🗺️</span>
+          <span>Camera Map</span>
+        </NavLink>
+
+
+        <NavLink
+          to="/pending"
+          className={({ isActive }) =>
+            `nav-item ${isActive ? "active" : ""}`
+          }
+        >
+          <span className="nav-icon">⏳</span>
+          <span>Pending Reports</span>
+
+          <span className="nav-badge">
+            0
+          </span>
+        </NavLink>
+
+
+        <NavLink
+          to="/report"
+          className={({ isActive }) =>
+            `nav-item report-nav ${isActive ? "active" : ""}`
+          }
+        >
+          <span className="nav-icon">📢</span>
+          <span>Report Camera</span>
+        </NavLink>
+
+      </nav>
+
+
+      {/* API STATUS */}
+
+      <div className="api-status">
+
+        <span className="api-dot"></span>
+
+        <span className="api-status-text">
+          API Online
+        </span>
+
+      </div>
+
+    </header>
+  );
+}
 
 
 function App() {
-
-  const [cameras, setCameras] = useState([]);
-
-
-  useEffect(() => {
-
-    fetch("http://127.0.0.1:8000/api/cameras")
-
-      .then((response) => response.json())
-
-      .then((data) => {
-
-        console.log("Camera Data:", data);
-
-        setCameras(data);
-
-      })
-
-      .catch((error) => {
-
-        console.error(
-          "Camera API Error:",
-          error
-        );
-
-      });
-
-
-  }, []);
-
-
-
   return (
+    <div className="app-shell">
 
-    <div>
+      <Navigation />
 
-      <h1>
-        Global Camera Map
-      </h1>
+      <main className="app-content">
 
+        <Routes>
 
-      <h2>
-        Total Cameras: {cameras.length}
-      </h2>
+          <Route
+            path="/"
+            element={<Dashboard />}
+          />
 
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
 
-      <hr />
+          <Route
+            path="/map"
+            element={<CameraMap />}
+          />
 
+          <Route
+            path="/pending"
+            element={<PendingCameras />}
+          />
 
-      {
+          <Route
+            path="/report"
+            element={<ReportCamera />}
+          />
 
-        cameras.map((camera) => (
+        </Routes>
 
-          <div key={camera.id}>
-
-            <h3>
-              {camera.city}
-            </h3>
-
-
-            <p>
-              State: {camera.state}
-            </p>
-
-
-            <p>
-              Type: {camera.camera_type}
-            </p>
-
-
-            <p>
-              Latitude: {camera.latitude}
-              <br />
-              Longitude: {camera.longitude}
-            </p>
-
-
-          </div>
-
-        ))
-
-      }
-
+      </main>
 
     </div>
-
   );
-
 }
 
 

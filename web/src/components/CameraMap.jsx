@@ -1,2848 +1,1568 @@
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 
 import {
-    MapContainer,
-    Marker,
-    Popup,
-    Polyline,
-    TileLayer,
-    useMap
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  Polyline,
+  useMap,
 } from "react-leaflet";
+
+import MarkerClusterGroup from "react-leaflet-cluster";
 
 import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
+import "./CameraMap.css";
+
 
 // ============================================================
 // CONFIGURATION
 // ============================================================
 
-const API_URL =
-    import.meta.env.VITE_API_URL ||
-    "http://127.0.0.1:8000";
+const API_URL = "http://127.0.0.1:8000";
 
-// ============================================================
-// MAP DEFAULTS
-// ============================================================
-
-const DEFAULT_CENTER = [
-    22.9734,
-    78.6569
-];
+const INDIA_CENTER = [22.5937, 78.9629];
 
 const DEFAULT_ZOOM = 5;
 
-// ============================================================
-// ROUTE CAMERA RADIUS
-//
-// 500 meters = 0.5 kilometers
-// ============================================================
+const ROUTE_CAMERA_RADIUS_KM = 1;
 
-const ROUTE_CAMERA_RADIUS_KM = 0.5;
+const CAMERA_REFRESH_MS = 60_000;
+
 
 // ============================================================
-// DISTANCE CALCULATION
-//
-// Haversine formula.
-// Returns distance in kilometers.
+// HELPERS
 // ============================================================
 
-const calculateDistance = (
-    latitude1,
-    longitude1,
-    latitude2,
-    longitude2
-) => {
+function safeNumber(value) {
+  const number = Number(value);
 
-    const lat1 = Number(latitude1);
-    const lon1 = Number(longitude1);
-    const lat2 = Number(latitude2);
-    const lon2 = Number(longitude2);
-
-    if (
-        !Number.isFinite(lat1) ||
-        !Number.isFinite(lon1) ||
-        !Number.isFinite(lat2) ||
-        !Number.isFinite(lon2)
-    ) {
-        return null;
-    }
-
-    const earthRadiusKm = 6371;
-
-    const toRadians = degrees =>
-        degrees * Math.PI / 180;
-
-    const dLatitude =
-        toRadians(lat2 - lat1);
-
-    const dLongitude =
-        toRadians(lon2 - lon1);
-
-    const a =
-        Math.sin(dLatitude / 2) ** 2 +
-        Math.cos(toRadians(lat1)) *
-        Math.cos(toRadians(lat2)) *
-        Math.sin(dLongitude / 2) ** 2;
-
-    const c =
-        2 *
-        Math.atan2(
-            Math.sqrt(a),
-            Math.sqrt(1 - a)
-        );
-
-    return earthRadiusKm * c;
-};
-
-// ============================================================
-// POINT TO SEGMENT DISTANCE
-//
-// Finds the shortest distance from a camera point
-// to one route segment.
-// ============================================================
-
-const getPointToSegmentDistance = (
-    cameraLatitude,
-    cameraLongitude,
-    point1,
-    point2
-) => {
-
-    const lat1 = Number(point1[0]);
-    const lon1 = Number(point1[1]);
-
-    const lat2 = Number(point2[0]);
-    const lon2 = Number(point2[1]);
-
-    const lat3 = Number(cameraLatitude);
-    const lon3 = Number(cameraLongitude);
-
-    if (
-        !Number.isFinite(lat1) ||
-        !Number.isFinite(lon1) ||
-        !Number.isFinite(lat2) ||
-        !Number.isFinite(lon2) ||
-        !Number.isFinite(lat3) ||
-        !Number.isFinite(lon3)
-    ) {
-        return null;
-    }
-
-    const earthRadiusKm = 6371;
-    const radians = Math.PI / 180;
-
-    const averageLatitude =
-        (
-            lat1 +
-            lat2 +
-            lat3
-        ) / 3;
-
-    const cosLatitude =
-        Math.cos(
-            averageLatitude * radians
-        );
-
-    const x1 =
-        lon1 *
-        radians *
-        cosLatitude;
-
-    const y1 =
-        lat1 *
-        radians;
-
-    const x2 =
-        lon2 *
-        radians *
-        cosLatitude;
-
-    const y2 =
-        lat2 *
-        radians;
-
-    const x3 =
-        lon3 *
-        radians *
-        cosLatitude;
-
-    const y3 =
-        lat3 *
-        radians;
-
-    const dx =
-        x2 - x1;
-
-    const dy =
-        y2 - y1;
-
-    const segmentLengthSquared =
-        dx * dx +
-        dy * dy;
-
-    let t = 0;
-
-    if (
-        segmentLengthSquared > 0
-    ) {
-
-        t =
-            (
-                (x3 - x1) * dx +
-                (y3 - y1) * dy
-            ) /
-            segmentLengthSquared;
-
-        t =
-            Math.max(
-                0,
-                Math.min(1, t)
-            );
-    }
-
-    const closestX =
-        x1 + t * dx;
-
-    const closestY =
-        y1 + t * dy;
-
-    const distanceRadians =
-        Math.sqrt(
-            (x3 - closestX) ** 2 +
-            (y3 - closestY) ** 2
-        );
-
-    return distanceRadians * earthRadiusKm;
-};
-
-// ============================================================
-// DISTANCE FROM CAMERA TO ENTIRE ROUTE
-//
-// Checks every route segment.
-// ============================================================
-
-const getDistanceFromRoute = (
-    camera,
-    routeCoordinates
-) => {
-
-    if (
-        !camera ||
-        !Array.isArray(routeCoordinates) ||
-        routeCoordinates.length < 2
-    ) {
-        return null;
-    }
-
-    const cameraLatitude =
-        Number(camera.latitude);
-
-    const cameraLongitude =
-        Number(camera.longitude);
-
-    if (
-        !Number.isFinite(cameraLatitude) ||
-        !Number.isFinite(cameraLongitude)
-    ) {
-        return null;
-    }
-
-    let closestDistance =
-        Infinity;
-
-    for (
-        let index = 0;
-        index < routeCoordinates.length - 1;
-        index++
-    ) {
-
-        const point1 =
-            routeCoordinates[index];
-
-        const point2 =
-            routeCoordinates[index + 1];
-
-        const segmentDistance =
-            getPointToSegmentDistance(
-                cameraLatitude,
-                cameraLongitude,
-                point1,
-                point2
-            );
-
-        if (
-            segmentDistance !== null &&
-            segmentDistance < closestDistance
-        ) {
-
-            closestDistance =
-                segmentDistance;
-        }
-    }
-
-    if (
-        closestDistance === Infinity
-    ) {
-        return null;
-    }
-
-    return closestDistance;
-};
-
-// ============================================================
-// DISTANCE ALONG ROUTE
-//
-// Finds approximately where the closest point to the
-// camera occurs along the route.
-// ============================================================
-
-const getDistanceAlongRoute = (
-    camera,
-    routeCoordinates
-) => {
-
-    if (
-        !camera ||
-        !Array.isArray(routeCoordinates) ||
-        routeCoordinates.length < 2
-    ) {
-        return null;
-    }
-
-    const cameraLatitude =
-        Number(camera.latitude);
-
-    const cameraLongitude =
-        Number(camera.longitude);
-
-    if (
-        !Number.isFinite(cameraLatitude) ||
-        !Number.isFinite(cameraLongitude)
-    ) {
-        return null;
-    }
-
-    let travelledKm = 0;
-
-    let closestDistance =
-        Infinity;
-
-    let closestRouteDistance =
-        null;
-
-    for (
-        let index = 0;
-        index < routeCoordinates.length - 1;
-        index++
-    ) {
-
-        const point1 =
-            routeCoordinates[index];
-
-        const point2 =
-            routeCoordinates[index + 1];
-
-        const latitude1 =
-            Number(point1[0]);
-
-        const longitude1 =
-            Number(point1[1]);
-
-        const latitude2 =
-            Number(point2[0]);
-
-        const longitude2 =
-            Number(point2[1]);
-
-        if (
-            !Number.isFinite(latitude1) ||
-            !Number.isFinite(longitude1) ||
-            !Number.isFinite(latitude2) ||
-            !Number.isFinite(longitude2)
-        ) {
-            continue;
-        }
-
-        const segmentDistance =
-            calculateDistance(
-                latitude1,
-                longitude1,
-                latitude2,
-                longitude2
-            );
-
-        if (
-            segmentDistance === null
-        ) {
-            continue;
-        }
-
-        const radians =
-            Math.PI / 180;
-
-        const averageLatitude =
-            (
-                latitude1 +
-                latitude2 +
-                cameraLatitude
-            ) / 3;
-
-        const cosLatitude =
-            Math.cos(
-                averageLatitude * radians
-            );
-
-        const x1 =
-            longitude1 *
-            radians *
-            cosLatitude;
-
-        const y1 =
-            latitude1 *
-            radians;
-
-        const x2 =
-            longitude2 *
-            radians *
-            cosLatitude;
-
-        const y2 =
-            latitude2 *
-            radians;
-
-        const x3 =
-            cameraLongitude *
-            radians *
-            cosLatitude;
-
-        const y3 =
-            cameraLatitude *
-            radians;
-
-        const dx =
-            x2 - x1;
-
-        const dy =
-            y2 - y1;
-
-        const segmentLengthSquared =
-            dx * dx +
-            dy * dy;
-
-        let t = 0;
-
-        if (
-            segmentLengthSquared > 0
-        ) {
-
-            t =
-                (
-                    (x3 - x1) * dx +
-                    (y3 - y1) * dy
-                ) /
-                segmentLengthSquared;
-
-            t =
-                Math.max(
-                    0,
-                    Math.min(1, t)
-                );
-        }
-
-        const closestX =
-            x1 + t * dx;
-
-        const closestY =
-            y1 + t * dy;
-
-        const distanceRadians =
-            Math.sqrt(
-                (x3 - closestX) ** 2 +
-                (y3 - closestY) ** 2
-            );
-
-        const distanceKm =
-            distanceRadians * 6371;
-
-        if (
-            distanceKm <
-            closestDistance
-        ) {
-
-            closestDistance =
-                distanceKm;
-
-            closestRouteDistance =
-                travelledKm +
-                segmentDistance * t;
-        }
-
-        travelledKm +=
-            segmentDistance;
-    }
-
-    return closestRouteDistance;
-};
-
-// ============================================================
-// CAMERA ICON
-// ============================================================
-
-const createCameraIcon = (
-    cameraType,
-    verificationStatus = "pending",
-    isRouteCamera = false
-) => {
-
-    const type =
-        String(cameraType || "")
-            .trim()
-            .toLowerCase();
-
-    const verification =
-        String(
-            verificationStatus || "pending"
-        )
-            .trim()
-            .toLowerCase();
-
-    let backgroundColor =
-        "#f59e0b";
-
-    if (
-        verification === "verified"
-    ) {
-        backgroundColor =
-            "#16a34a";
-    }
-
-    if (
-        verification === "rejected"
-    ) {
-        backgroundColor =
-            "#dc2626";
-    }
-
-    if (
-        isRouteCamera
-    ) {
-        backgroundColor =
-            "#dc2626";
-    }
-
-    let symbol =
-        "📷";
-
-    if (
-        type.includes("speed")
-    ) {
-
-        symbol =
-            "⚡";
-
-    } else if (
-        type.includes("red")
-    ) {
-
-        symbol =
-            "🚦";
-
-    } else if (
-        type.includes("traffic")
-    ) {
-
-        symbol =
-            "📷";
-    }
-
-    return L.divIcon({
-
-        className:
-            "camera-marker-icon",
-
-        html: `
-            <div
-                style="
-                    width: 34px;
-                    height: 34px;
-                    border-radius: 50%;
-                    background: ${backgroundColor};
-                    border: 3px solid white;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 17px;
-                "
-            >
-                ${symbol}
-            </div>
-        `,
-
-        iconSize: [
-            34,
-            34
-        ],
-
-        iconAnchor: [
-            17,
-            17
-        ],
-
-        popupAnchor: [
-            0,
-            -17
-        ]
-    });
-};
-
-// ============================================================
-// DESTINATION ICON
-// ============================================================
-
-const destinationIcon =
-    L.divIcon({
-
-        className:
-            "destination-marker-icon",
-
-        html: `
-            <div
-                style="
-                    width: 38px;
-                    height: 38px;
-                    border-radius: 50%;
-                    background: #2563eb;
-                    border: 3px solid white;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 20px;
-                "
-            >
-                🏁
-            </div>
-        `,
-
-        iconSize: [
-            38,
-            38
-        ],
-
-        iconAnchor: [
-            19,
-            19
-        ],
-
-        popupAnchor: [
-            0,
-            -19
-        ]
-    });
-
-// ============================================================
-// USER LOCATION ICON
-// ============================================================
-
-const userLocationIcon =
-    L.divIcon({
-
-        className:
-            "user-location-marker-icon",
-
-        html: `
-            <div
-                style="
-                    width: 38px;
-                    height: 38px;
-                    border-radius: 50%;
-                    background: #7c3aed;
-                    border: 3px solid white;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 20px;
-                "
-            >
-                📍
-            </div>
-        `,
-
-        iconSize: [
-            38,
-            38
-        ],
-
-        iconAnchor: [
-            19,
-            19
-        ],
-
-        popupAnchor: [
-            0,
-            -19
-        ]
-    });
-
-// ============================================================
-// MAP REF CONTROLLER
-// ============================================================
-
-function MapRefController({
-    mapRef
-}) {
-
-    const map =
-        useMap();
-
-    useEffect(() => {
-
-        mapRef.current =
-            map;
-
-        return () => {
-
-            if (
-                mapRef.current === map
-            ) {
-
-                mapRef.current =
-                    null;
-            }
-        };
-
-    }, [
-        map,
-        mapRef
-    ]);
-
-    return null;
+  return Number.isFinite(number) ? number : null;
 }
+
+
+function normalizeCameras(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.cameras)) {
+    return payload.cameras;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  if (Array.isArray(payload?.results)) {
+    return payload.results;
+  }
+
+  return [];
+}
+
+
+function normalizeCamera(camera) {
+  return {
+    ...camera,
+    latitude: safeNumber(camera?.latitude),
+    longitude: safeNumber(camera?.longitude),
+    speed_limit: safeNumber(camera?.speed_limit),
+  };
+}
+
+
+function isValidCamera(camera) {
+  return (
+    camera &&
+    Number.isFinite(camera.latitude) &&
+    Number.isFinite(camera.longitude) &&
+    camera.latitude >= -90 &&
+    camera.latitude <= 90 &&
+    camera.longitude >= -180 &&
+    camera.longitude <= 180
+  );
+}
+
+
+function getCameraType(camera) {
+  const type = String(
+    camera?.camera_type ||
+      camera?.enforcement_type ||
+      ""
+  ).toLowerCase();
+
+  if (
+    type.includes("speed") ||
+    type.includes("velocity")
+  ) {
+    return "speed";
+  }
+
+  if (
+    type.includes("red light") ||
+    type.includes("red-light") ||
+    type.includes("signal") ||
+    type.includes("traffic light")
+  ) {
+    return "red";
+  }
+
+  return "other";
+}
+
+
+function getCameraTypeLabel(camera) {
+  const type = getCameraType(camera);
+
+  if (type === "speed") {
+    return "Speed Camera";
+  }
+
+  if (type === "red") {
+    return "Red Light Camera";
+  }
+
+  return "Other Camera";
+}
+
+
+function getStatusLabel(status) {
+  const value = String(status || "unknown").toLowerCase();
+
+  if (value === "active") {
+    return "Active";
+  }
+
+  if (value === "inactive") {
+    return "Inactive";
+  }
+
+  if (value === "maintenance") {
+    return "Maintenance";
+  }
+
+  return "Unknown";
+}
+
+
+function getVerificationLabel(status) {
+  const value = String(status || "pending").toLowerCase();
+
+  if (value === "verified") {
+    return "Verified";
+  }
+
+  if (value === "rejected") {
+    return "Rejected";
+  }
+
+  return "Pending";
+}
+
+
+function formatUpdatedTime(date = new Date()) {
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+
+function haversineDistanceKm(lat1, lon1, lat2, lon2) {
+  const earthRadius = 6371;
+
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+
+  return (
+    earthRadius *
+    2 *
+    Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  );
+}
+
+
+// ============================================================
+// CAMERA ICONS
+// ============================================================
+
+function createCameraIcon(type) {
+  const configuration = {
+    speed: {
+      label: "S",
+      className: "gcm-marker-speed",
+    },
+
+    red: {
+      label: "R",
+      className: "gcm-marker-red",
+    },
+
+    other: {
+      label: "C",
+      className: "gcm-marker-other",
+    },
+  };
+
+  const selected =
+    configuration[type] || configuration.other;
+
+  return L.divIcon({
+    className: "gcm-camera-marker-wrapper",
+
+    html: `
+      <div
+        class="gcm-camera-marker ${selected.className}"
+        aria-label="${selected.label} camera"
+      >
+        <span>${selected.label}</span>
+      </div>
+    `,
+
+    iconSize: [34, 34],
+
+    iconAnchor: [17, 17],
+
+    popupAnchor: [0, -19],
+  });
+}
+
+
+const CAMERA_ICONS = {
+  speed: createCameraIcon("speed"),
+  red: createCameraIcon("red"),
+  other: createCameraIcon("other"),
+};
+
 
 // ============================================================
 // MAP CONTROLLER
 // ============================================================
 
 function MapController({
-    routeCoordinates,
-    destination,
-    userLocation
+  focusLocation,
+  fitCoordinates,
 }) {
+  const map = useMap();
 
-    const map =
-        useMap();
-
-    useEffect(() => {
-
-        if (
-            routeCoordinates &&
-            routeCoordinates.length > 1
-        ) {
-
-            const bounds =
-                L.latLngBounds(
-                    routeCoordinates
-                );
-
-            map.fitBounds(
-                bounds,
-                {
-                    padding: [
-                        40,
-                        40
-                    ]
-                }
-            );
-
-            return;
+  useEffect(() => {
+    if (
+      Array.isArray(focusLocation) &&
+      focusLocation.length === 2
+    ) {
+      map.flyTo(
+        focusLocation,
+        Math.max(map.getZoom(), 12),
+        {
+          duration: 0.8,
         }
+      );
+    }
+  }, [focusLocation, map]);
 
-        if (
-            destination
-        ) {
+  useEffect(() => {
+    if (
+      Array.isArray(fitCoordinates) &&
+      fitCoordinates.length > 1
+    ) {
+      const bounds = L.latLngBounds(fitCoordinates);
 
-            map.flyTo(
-                [
-                    destination.latitude,
-                    destination.longitude
-                ],
-                12,
-                {
-                    duration: 1
-                }
-            );
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, {
+          padding: [60, 60],
+          maxZoom: 14,
+          animate: true,
+        });
+      }
+    }
+  }, [fitCoordinates, map]);
 
-            return;
-        }
-
-        if (
-            userLocation
-        ) {
-
-            map.flyTo(
-                [
-                    userLocation.latitude,
-                    userLocation.longitude
-                ],
-                12,
-                {
-                    duration: 1
-                }
-            );
-        }
-
-    }, [
-        map,
-        routeCoordinates,
-        destination,
-        userLocation
-    ]);
-
-    return null;
+  return null;
 }
+
+
+// ============================================================
+// MAP ZOOM CONTROLS
+// ============================================================
+
+function ZoomControls() {
+  const map = useMap();
+
+  return (
+    <div className="gcm-map-controls">
+      <button
+        type="button"
+        className="gcm-map-control"
+        title="Zoom in"
+        aria-label="Zoom in"
+        onClick={() => map.zoomIn()}
+      >
+        +
+      </button>
+
+      <button
+        type="button"
+        className="gcm-map-control"
+        title="Zoom out"
+        aria-label="Zoom out"
+        onClick={() => map.zoomOut()}
+      >
+        −
+      </button>
+    </div>
+  );
+}
+
 
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
 
 export default function CameraMap() {
+  const [cameras, setCameras] = useState([]);
 
-    // ========================================================
-    // CAMERA DATA
-    // ========================================================
+  const [loading, setLoading] = useState(true);
 
-    const [
-        cameras,
-        setCameras
-    ] = useState([]);
+  const [error, setError] = useState("");
 
-    const [
-        loading,
-        setLoading
-    ] = useState(true);
+  const [activeFilter, setActiveFilter] =
+    useState("all");
 
-    const [
-        cameraError,
-        setCameraError
-    ] = useState(false);
+  const [search, setSearch] = useState("");
 
-    // ========================================================
-    // SEARCH
-    // ========================================================
+  const [focusLocation, setFocusLocation] =
+    useState(null);
 
-    const [
-        searchQuery,
-        setSearchQuery
-    ] = useState("");
+  const [route, setRoute] = useState([]);
 
-    const [
-        searchLoading,
-        setSearchLoading
-    ] = useState(false);
+  const [routeCameras, setRouteCameras] =
+    useState([]);
 
-    const [
-        searchError,
-        setSearchError
-    ] = useState("");
+  const [destination, setDestination] =
+    useState("");
 
-    // ========================================================
-    // DESTINATION
-    // ========================================================
+  const [routeLoading, setRouteLoading] =
+    useState(false);
 
-    const [
-        destination,
-        setDestination
-    ] = useState(null);
+  const [routeError, setRouteError] =
+    useState("");
 
-    // ========================================================
-    // USER LOCATION
-    // ========================================================
+  const [locationLoading, setLocationLoading] =
+    useState(false);
 
-    const [
-        userLocation,
-        setUserLocation
-    ] = useState(null);
+  const [locationError, setLocationError] =
+    useState("");
 
-    const [
-        locationLoading,
-        setLocationLoading
-    ] = useState(false);
+  const [lastUpdated, setLastUpdated] =
+    useState(null);
 
-    // ========================================================
-    // ROUTE
-    // ========================================================
+  const [mapReady, setMapReady] =
+    useState(false);
 
-    const [
-        routeCoordinates,
-        setRouteCoordinates
-    ] = useState([]);
+  const refreshTimerRef = useRef(null);
 
-    const [
-        routeDistance,
-        setRouteDistance
-    ] = useState(null);
+  const mapContainerRef = useRef(null);
 
-    const [
-        routeDuration,
-        setRouteDuration
-    ] = useState(null);
 
-    const [
-        routeCreated,
-        setRouteCreated
-    ] = useState(false);
+  // ==========================================================
+  // LOAD CAMERAS
+  // ==========================================================
 
-    const [
-        routeLoading,
-        setRouteLoading
-    ] = useState(false);
-
-    const [
-        routeError,
-        setRouteError
-    ] = useState("");
-
-    // ========================================================
-    // FILTERS
-    // ========================================================
-
-    const [
-        cameraTypeFilter,
-        setCameraTypeFilter
-    ] = useState("All");
-
-    const [
-        verificationFilter,
-        setVerificationFilter
-    ] = useState("All");
-
-    // ========================================================
-    // MAP REF
-    // ========================================================
-
-    const mapRef =
-        useRef(null);
-
-    // ========================================================
-    // LOAD CAMERAS
-    // ========================================================
-
-    const loadCameras = async () => {
-
-        try {
-
-            setLoading(true);
-
-            setCameraError(false);
-
-            const response =
-                await fetch(
-                    `${API_URL}/api/cameras`
-                );
-
-            if (
-                !response.ok
-            ) {
-
-                throw new Error(
-                    `Camera API returned ${response.status}`
-                );
-            }
-
-            const data =
-                await response.json();
-
-            if (
-                !Array.isArray(data)
-            ) {
-
-                throw new Error(
-                    "Camera API did not return an array"
-                );
-            }
-
-            setCameras(data);
-
-        } catch (error) {
-
-            console.error(
-                "Failed to load cameras:",
-                error
-            );
-
-            setCameras([]);
-
-            setCameraError(
-                true
-            );
-
-        } finally {
-
-            setLoading(
-                false
-            );
-        }
-    };
-
-    // ========================================================
-    // INITIAL CAMERA LOAD
-    // ========================================================
-
-    useEffect(() => {
-
-        loadCameras();
-
-    }, []);
-
-    // ========================================================
-    // LOCATE USER
-    // ========================================================
-
-    const locateUser = () => {
-
-        if (
-            !navigator.geolocation
-        ) {
-
-            alert(
-                "Geolocation is not supported by this browser."
-            );
-
-            return;
+  const loadCameras = useCallback(
+    async ({ silent = false } = {}) => {
+      try {
+        if (!silent) {
+          setLoading(true);
         }
 
-        setLocationLoading(
-            true
+        setError("");
+
+        const response = await fetch(
+          `${API_URL}/api/cameras`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+          }
         );
 
-        navigator.geolocation.getCurrentPosition(
-
-            position => {
-
-                const location = {
-
-                    latitude:
-                        position.coords.latitude,
-
-                    longitude:
-                        position.coords.longitude
-                };
-
-                setUserLocation(
-                    location
-                );
-
-                setLocationLoading(
-                    false
-                );
-
-                if (
-                    mapRef.current
-                ) {
-
-                    mapRef.current.flyTo(
-                        [
-                            location.latitude,
-                            location.longitude
-                        ],
-                        12,
-                        {
-                            duration: 1
-                        }
-                    );
-                }
-            },
-
-            error => {
-
-                console.error(
-                    "Location error:",
-                    error
-                );
-
-                setLocationLoading(
-                    false
-                );
-
-                alert(
-                    "Unable to get your current location. Please allow location access."
-                );
-            },
-
-            {
-                enableHighAccuracy:
-                    true,
-
-                timeout:
-                    15000,
-
-                maximumAge:
-                    0
-            }
-        );
-    };
-
-    // ========================================================
-    // FIND DESTINATION
-    // ========================================================
-
-    const findDestination = async () => {
-
-        const query =
-            searchQuery.trim();
-
-        if (
-            !query
-        ) {
-
-            setSearchError(
-                "Please enter a city, state or road."
-            );
-
-            return;
+        if (!response.ok) {
+          throw new Error(
+            `Camera API returned ${response.status}`
+          );
         }
 
-        try {
+        const payload = await response.json();
 
-            setSearchLoading(
-                true
+        const normalized = normalizeCameras(payload)
+          .map(normalizeCamera)
+          .filter(isValidCamera);
+
+        setCameras(normalized);
+
+        setLastUpdated(new Date());
+      } catch (requestError) {
+        console.error(
+          "Global Camera Map: camera loading failed",
+          requestError
+        );
+
+        setError(
+          "Unable to connect to the camera network."
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+
+  useEffect(() => {
+    loadCameras();
+
+    refreshTimerRef.current = setInterval(() => {
+      loadCameras({ silent: true });
+    }, CAMERA_REFRESH_MS);
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+      }
+    };
+  }, [loadCameras]);
+
+
+  // ==========================================================
+  // CAMERA STATISTICS
+  // ==========================================================
+
+  const statistics = useMemo(() => {
+    let speed = 0;
+    let red = 0;
+    let other = 0;
+
+    cameras.forEach((camera) => {
+      const type = getCameraType(camera);
+
+      if (type === "speed") {
+        speed += 1;
+      } else if (type === "red") {
+        red += 1;
+      } else {
+        other += 1;
+      }
+    });
+
+    return {
+      all: cameras.length,
+      speed,
+      red,
+      other,
+    };
+  }, [cameras]);
+
+
+  // ==========================================================
+  // FILTER CAMERAS
+  // ==========================================================
+
+  const visibleCameras = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return cameras.filter((camera) => {
+      const type = getCameraType(camera);
+
+      if (
+        activeFilter !== "all" &&
+        type !== activeFilter
+      ) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const searchable = [
+        camera.city,
+        camera.state,
+        camera.country,
+        camera.road_name,
+        camera.camera_type,
+        camera.enforcement_type,
+        camera.source,
+        camera.status,
+        camera.verification_status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchable.includes(query);
+    });
+  }, [cameras, activeFilter, search]);
+
+
+  // ==========================================================
+  // CURRENT LOCATION
+  // ==========================================================
+
+  const handleCurrentLocation = () => {
+    setLocationError("");
+
+    if (!navigator.geolocation) {
+      setLocationError(
+        "Geolocation is not supported by this browser."
+      );
+
+      return;
+    }
+
+    setLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coordinates = [
+          position.coords.latitude,
+          position.coords.longitude,
+        ];
+
+        setFocusLocation(coordinates);
+
+        setLocationLoading(false);
+      },
+      (locationPositionError) => {
+        console.error(
+          "Geolocation error",
+          locationPositionError
+        );
+
+        setLocationError(
+          "Unable to determine your current location."
+        );
+
+        setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000,
+      }
+    );
+  };
+
+
+  // ==========================================================
+  // SEARCH CAMERA COVERAGE
+  // ==========================================================
+
+  const handleCameraSearch = () => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return;
+    }
+
+    const match = cameras.find((camera) => {
+      const searchable = [
+        camera.city,
+        camera.state,
+        camera.road_name,
+        camera.camera_type,
+        camera.enforcement_type,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchable.includes(query);
+    });
+
+    if (match) {
+      setFocusLocation([
+        match.latitude,
+        match.longitude,
+      ]);
+    }
+  };
+
+
+  // ==========================================================
+  // GEOCODE DESTINATION
+  // ==========================================================
+
+  const geocodeDestination = async (query) => {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(
+        query
+      )}`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Geocoding service returned ${response.status}`
+      );
+    }
+
+    const results = await response.json();
+
+    if (!results.length) {
+      throw new Error(
+        "Destination could not be located."
+      );
+    }
+
+    return [
+      Number(results[0].lat),
+      Number(results[0].lon),
+    ];
+  };
+
+
+  // ==========================================================
+  // FIND DRIVING ROUTE
+  // ==========================================================
+
+  const handleRoute = async () => {
+    const query = destination.trim();
+
+    if (!query) {
+      setRouteError(
+        "Enter a destination first."
+      );
+
+      return;
+    }
+
+    setRouteLoading(true);
+    setRouteError("");
+    setRoute([]);
+    setRouteCameras([]);
+
+    try {
+      let start;
+
+      if (focusLocation) {
+        start = focusLocation;
+      } else if (navigator.geolocation) {
+        start = await new Promise(
+          (resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                resolve([
+                  position.coords.latitude,
+                  position.coords.longitude,
+                ]);
+              },
+              () => {
+                reject(
+                  new Error(
+                    "Allow location access to create a route."
+                  )
+                );
+              },
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 30000,
+              }
             );
+          }
+        );
+      } else {
+        throw new Error(
+          "Location services are unavailable."
+        );
+      }
 
-            setSearchError(
-                ""
-            );
+      const end =
+        await geocodeDestination(query);
 
-            const url =
-                `https://nominatim.openstreetmap.org/search?` +
-                `format=json` +
-                `&q=${encodeURIComponent(query)}` +
-                `&countrycodes=in` +
-                `&limit=1`;
+      const osrmUrl =
+        `https://router.project-osrm.org/route/v1/driving/` +
+        `${start[1]},${start[0]};${end[1]},${end[0]}` +
+        `?overview=full&geometries=geojson`;
 
-            const response =
-                await fetch(
-                    url,
-                    {
-                        headers: {
-                            Accept:
-                                "application/json"
-                        }
-                    }
-                );
+      const routeResponse =
+        await fetch(osrmUrl);
 
-            if (
-                !response.ok
-            ) {
+      if (!routeResponse.ok) {
+        throw new Error(
+          "Driving route service is unavailable."
+        );
+      }
 
-                throw new Error(
-                    "Destination search failed"
-                );
-            }
+      const routePayload =
+        await routeResponse.json();
 
-            const results =
-                await response.json();
+      if (
+        routePayload.code !== "Ok" ||
+        !routePayload.routes?.length
+      ) {
+        throw new Error(
+          "No driving route was found."
+        );
+      }
 
-            if (
-                !Array.isArray(results) ||
-                results.length === 0
-            ) {
+      const geometry =
+        routePayload.routes[0]?.geometry?.coordinates;
 
-                setSearchError(
-                    `Destination "${query}" was not found.`
-                );
+      if (!Array.isArray(geometry)) {
+        throw new Error(
+          "Route geometry was unavailable."
+        );
+      }
 
-                return;
-            }
+      const routeCoordinates = geometry.map(
+        ([longitude, latitude]) => [
+          latitude,
+          longitude,
+        ]
+      );
 
-            const result =
-                results[0];
+      setRoute(routeCoordinates);
 
-            const latitude =
-                Number(result.lat);
+      // --------------------------------------------------------
+      // Find cameras close to the calculated route.
+      // --------------------------------------------------------
 
-            const longitude =
-                Number(result.lon);
-
-            if (
-                !Number.isFinite(latitude) ||
-                !Number.isFinite(longitude)
-            ) {
-
-                throw new Error(
-                    "Invalid destination coordinates"
-                );
-            }
-
-            const newDestination = {
-
-                name:
-                    result.display_name
-                        ?.split(",")
-                        ?.slice(0, 2)
-                        ?.join(",")
-                        ?.trim()
-                    || query,
-
-                query,
-
+      const nearby = cameras.filter((camera) => {
+        return routeCoordinates.some(
+          ([latitude, longitude]) => {
+            return (
+              haversineDistanceKm(
+                camera.latitude,
+                camera.longitude,
                 latitude,
-
                 longitude
-            };
-
-            setDestination(
-                newDestination
+              ) <= ROUTE_CAMERA_RADIUS_KM
             );
-
-            setRouteCreated(
-                false
-            );
-
-            setRouteCoordinates(
-                []
-            );
-
-            setRouteDistance(
-                null
-            );
-
-            setRouteDuration(
-                null
-            );
-
-            setRouteError(
-                ""
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Destination search error:",
-                error
-            );
-
-            setSearchError(
-                "Unable to find destination."
-            );
-
-        } finally {
-
-            setSearchLoading(
-                false
-            );
-        }
-    };
-
-    // ========================================================
-    // CREATE ROUTE
-    // ========================================================
-
-    const createRoute = async () => {
-
-        if (
-            !destination
-        ) {
-
-            setRouteError(
-                "Find a destination first."
-            );
-
-            return;
-        }
-
-        if (
-            !userLocation
-        ) {
-
-            setRouteError(
-                "Please click Locate Me first so the route can start from your current location."
-            );
-
-            return;
-        }
-
-        try {
-
-            setRouteLoading(
-                true
-            );
-
-            setRouteError(
-                ""
-            );
-
-            const start =
-                `${userLocation.longitude},${userLocation.latitude}`;
-
-            const end =
-                `${destination.longitude},${destination.latitude}`;
-
-            const url =
-                `https://router.project-osrm.org/route/v1/driving/` +
-                `${start};${end}` +
-                `?overview=full&geometries=geojson`;
-
-            const response =
-                await fetch(
-                    url
-                );
-
-            if (
-                !response.ok
-            ) {
-
-                throw new Error(
-                    "Routing service failed"
-                );
-            }
-
-            const data =
-                await response.json();
-
-            if (
-                data.code !== "Ok" ||
-                !data.routes ||
-                data.routes.length === 0
-            ) {
-
-                throw new Error(
-                    "No route could be created."
-                );
-            }
-
-            const route =
-                data.routes[0];
-
-            const coordinates =
-                route.geometry.coordinates.map(
-                    point => [
-                        Number(point[1]),
-                        Number(point[0])
-                    ]
-                );
-
-            setRouteCoordinates(
-                coordinates
-            );
-
-            setRouteDistance(
-                Number(route.distance) / 1000
-            );
-
-            setRouteDuration(
-                Number(route.duration) / 60
-            );
-
-            setRouteCreated(
-                true
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Route creation error:",
-                error
-            );
-
-            setRouteError(
-                "Unable to create route. Please try again."
-            );
-
-        } finally {
-
-            setRouteLoading(
-                false
-            );
-        }
-    };
-
-    // ========================================================
-    // CLEAR ROUTE
-    // ========================================================
-
-    const clearRoute = () => {
-
-        setRouteCoordinates(
-            []
+          }
         );
+      });
 
-        setRouteDistance(
-            null
+      setRouteCameras(nearby);
+
+      if (routeCoordinates.length) {
+        setFocusLocation(
+          routeCoordinates[
+            Math.floor(routeCoordinates.length / 2)
+          ]
         );
-
-        setRouteDuration(
-            null
-        );
-
-        setRouteCreated(
-            false
-        );
-
-        setRouteError(
-            ""
-        );
-    };
-
-    // ========================================================
-    // ROUTE SPEED CAMERAS
-    //
-    // ONLY speed cameras within 500 meters.
-    // ========================================================
-
-    const routeSpeedCameras =
-        useMemo(() => {
-
-            if (
-                !routeCreated ||
-                routeCoordinates.length < 2
-            ) {
-
-                return [];
-            }
-
-            return cameras
-
-                .filter(camera => {
-
-                    const type =
-                        String(
-                            camera.camera_type || ""
-                        )
-                            .trim()
-                            .toLowerCase();
-
-                    return type.includes(
-                        "speed"
-                    );
-                })
-
-                .map(camera => {
-
-                    const fromRouteKm =
-                        getDistanceFromRoute(
-                            camera,
-                            routeCoordinates
-                        );
-
-                    const routeDistanceKm =
-                        getDistanceAlongRoute(
-                            camera,
-                            routeCoordinates
-                        );
-
-                    const distanceToDestination =
-                        destination
-                            ? calculateDistance(
-                                Number(
-                                    camera.latitude
-                                ),
-                                Number(
-                                    camera.longitude
-                                ),
-                                Number(
-                                    destination.latitude
-                                ),
-                                Number(
-                                    destination.longitude
-                                )
-                            )
-                            : null;
-
-                    return {
-                        ...camera,
-                        fromRouteKm,
-                        routeDistanceKm,
-                        distanceToDestination
-                    };
-                })
-
-                .filter(camera =>
-                    camera.fromRouteKm !== null &&
-                    camera.fromRouteKm <=
-                    ROUTE_CAMERA_RADIUS_KM
-                )
-
-                .sort(
-                    (a, b) =>
-                        (
-                            a.routeDistanceKm ??
-                            Infinity
-                        ) -
-                        (
-                            b.routeDistanceKm ??
-                            Infinity
-                        )
-                );
-
-        }, [
-            cameras,
-            routeCoordinates,
-            routeCreated,
-            destination
-        ]);
-
-    // ========================================================
-    // FILTER CAMERAS
-    // ========================================================
-
-    const filteredCameras =
-        useMemo(() => {
-
-            return cameras.filter(
-                camera => {
-
-                    const cameraType =
-                        String(
-                            camera.camera_type || ""
-                        )
-                            .trim()
-                            .toLowerCase();
-
-                    const verification =
-                        String(
-                            camera.verification_status || ""
-                        )
-                            .trim()
-                            .toLowerCase();
-
-                    const typeMatch =
-                        cameraTypeFilter === "All" ||
-                        cameraType.includes(
-                            cameraTypeFilter.toLowerCase()
-                        );
-
-                    const verificationMatch =
-                        verificationFilter === "All" ||
-                        verification ===
-                        verificationFilter.toLowerCase();
-
-                    return (
-                        typeMatch &&
-                        verificationMatch
-                    );
-                }
-            );
-
-        }, [
-            cameras,
-            cameraTypeFilter,
-            verificationFilter
-        ]);
-
-    // ========================================================
-    // STATISTICS
-    // ========================================================
-
-    const statistics =
-        useMemo(() => {
-
-            const total =
-                filteredCameras.length;
-
-            const speed =
-                filteredCameras.filter(
-                    camera =>
-                        String(
-                            camera.camera_type || ""
-                        )
-                            .toLowerCase()
-                            .includes("speed")
-                ).length;
-
-            const redLight =
-                filteredCameras.filter(
-                    camera =>
-                        String(
-                            camera.camera_type || ""
-                        )
-                            .toLowerCase()
-                            .includes("red")
-                ).length;
-
-            const verified =
-                filteredCameras.filter(
-                    camera =>
-                        String(
-                            camera.verification_status || ""
-                        )
-                            .toLowerCase() ===
-                        "verified"
-                ).length;
-
-            const pending =
-                filteredCameras.filter(
-                    camera =>
-                        String(
-                            camera.verification_status || ""
-                        )
-                            .toLowerCase() ===
-                        "pending"
-                ).length;
-
-            const cities =
-                new Set(
-                    filteredCameras
-                        .map(
-                            camera =>
-                                String(
-                                    camera.city || ""
-                                )
-                                    .trim()
-                                    .toLowerCase()
-                        )
-                        .filter(Boolean)
-                ).size;
-
-            return {
-                total,
-                speed,
-                redLight,
-                verified,
-                pending,
-                cities
-            };
-
-        }, [
-            filteredCameras
-        ]);
-
-    // ========================================================
-    // CAMERA DISTANCE FROM USER
-    // ========================================================
-
-    const getCameraDistance =
-        camera => {
-
-            if (
-                !userLocation
-            ) {
-
-                return null;
-            }
-
-            return calculateDistance(
-                userLocation.latitude,
-                userLocation.longitude,
-                Number(camera.latitude),
-                Number(camera.longitude)
-            );
-        };
-
-    // ========================================================
-    // FORMAT DISTANCE
-    // ========================================================
-
-    const formatDistance =
-        km => {
-
-            if (
-                km === null ||
-                km === undefined ||
-                !Number.isFinite(km)
-            ) {
-
-                return null;
-            }
-
-            return km < 1
-                ? `${Math.round(km * 1000)} m`
-                : `${km.toFixed(2)} km`;
-        };
-
-    // ========================================================
-    // FORMAT ROUTE TIME
-    // ========================================================
-
-    const formatRouteTime =
-        minutes => {
-
-            if (
-                minutes === null ||
-                minutes === undefined ||
-                !Number.isFinite(minutes)
-            ) {
-
-                return "";
-            }
-
-            const rounded =
-                Math.round(minutes);
-
-            const hours =
-                Math.floor(
-                    rounded / 60
-                );
-
-            const mins =
-                rounded % 60;
-
-            if (
-                hours > 0
-            ) {
-
-                return `${hours} hr ${mins} min`;
-            }
-
-            return `${mins} min`;
-        };
-
-    // ========================================================
-    // CAMERA VERIFICATION DISPLAY
-    // ========================================================
-
-    const verificationLabel =
-        camera => {
-
-            const value =
-                String(
-                    camera.verification_status ||
-                    "Pending"
-                )
-                    .trim()
-                    .toLowerCase();
-
-            if (
-                value === "verified"
-            ) {
-
-                return "Verified";
-            }
-
-            if (
-                value === "rejected"
-            ) {
-
-                return "Rejected";
-            }
-
-            return "Pending";
-        };
-
-    // ========================================================
-    // ROUTE CAMERA MESSAGE
-    // ========================================================
-
-    const routeCameraMessage =
-        routeSpeedCameras.length === 0
-            ? "No speed cameras found within 500 meters of your route."
-            : `Found ${routeSpeedCameras.length} speed camera${
-                routeSpeedCameras.length === 1
-                    ? ""
-                    : "s"
-            } within 500 meters of your route.`;
-
-    // ========================================================
-    // RENDER
-    // ========================================================
+      }
+    } catch (routeRequestError) {
+      console.error(
+        "Global Camera Map: route error",
+        routeRequestError
+      );
+
+      setRouteError(
+        routeRequestError?.message ||
+          "Unable to calculate driving route."
+      );
+    } finally {
+      setRouteLoading(false);
+    }
+  };
+
+
+  // ==========================================================
+  // CLEAR ROUTE
+  // ==========================================================
+
+  const clearRoute = () => {
+    setRoute([]);
+    setRouteCameras([]);
+    setRouteError("");
+  };
+
+
+  // ==========================================================
+  // ROUTE CAMERA IDS
+  // ==========================================================
+
+  const routeCameraIds = useMemo(() => {
+    return new Set(
+      routeCameras.map((camera) =>
+        String(camera.id)
+      )
+    );
+  }, [routeCameras]);
+
+
+  // ==========================================================
+  // FIT VISIBLE CAMERAS
+  // ==========================================================
+
+  const fitCoordinates = useMemo(() => {
+    if (!mapReady) {
+      return [];
+    }
+
+    if (route.length > 1) {
+      return route;
+    }
+
+    return [];
+  }, [route, mapReady]);
+
+
+  // ==========================================================
+  // CAMERA REFRESH BUTTON
+  // ==========================================================
+
+  const handleRefresh = async () => {
+    await loadCameras();
+  };
+
+
+  // ==========================================================
+  // CAMERA POPUP
+  // ==========================================================
+
+  const renderCameraPopup = (camera) => {
+    const type = getCameraType(camera);
+
+    const status = getStatusLabel(
+      camera.status
+    );
+
+    const verification =
+      getVerificationLabel(
+        camera.verification_status
+      );
+
+    const routeCamera =
+      routeCameraIds.has(
+        String(camera.id)
+      );
 
     return (
+      <Popup className="gcm-camera-popup">
+        <div className="gcm-popup">
+          <div className="gcm-popup-header">
+            <div>
+              <span className="gcm-popup-eyebrow">
+                GCM / CAMERA
+              </span>
 
-        <div className="camera-map-page">
-
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
-            <div className="page-header">
-
-                <div>
-
-                    <h1>
-                        🗺 Global Camera Map
-                    </h1>
-
-                    <p>
-                        Find traffic cameras and plan safer routes.
-                    </p>
-
-                </div>
-
+              <h3>
+                {getCameraTypeLabel(camera)}
+              </h3>
             </div>
 
-            {/* ==================================================
-                CONTROLS
-            ================================================== */}
-
-            <div className="map-controls">
-
-                {/* SEARCH */}
-
-                <div className="destination-search">
-
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={event =>
-                            setSearchQuery(
-                                event.target.value
-                            )
-                        }
-                        onKeyDown={event => {
-
-                            if (
-                                event.key === "Enter"
-                            ) {
-
-                                findDestination();
-                            }
-                        }}
-                        placeholder="Search city, state or road..."
-                    />
-
-                    <button
-                        type="button"
-                        onClick={findDestination}
-                        disabled={searchLoading}
-                    >
-                        {searchLoading
-                            ? "🔍 Searching..."
-                            : "🔍 Find Destination"}
-                    </button>
-
-                </div>
-
-                {/* ROUTE */}
-
-                <button
-                    type="button"
-                    onClick={createRoute}
-                    disabled={
-                        routeLoading ||
-                        !destination
-                    }
-                    className="route-button"
-                >
-                    {routeLoading
-                        ? "🚗 Creating Route..."
-                        : "🚗 Create Route"}
-                </button>
-
-                {/* CAMERA TYPE */}
-
-                <select
-                    value={cameraTypeFilter}
-                    onChange={event =>
-                        setCameraTypeFilter(
-                            event.target.value
-                        )
-                    }
-                >
-
-                    <option value="All">
-                        All Camera Types
-                    </option>
-
-                    <option value="Speed Camera">
-                        Speed Camera
-                    </option>
-
-                    <option value="Red Light Camera">
-                        Red Light Camera
-                    </option>
-
-                    <option value="Traffic Camera">
-                        Traffic Camera
-                    </option>
-
-                </select>
-
-                {/* VERIFICATION */}
-
-                <select
-                    value={verificationFilter}
-                    onChange={event =>
-                        setVerificationFilter(
-                            event.target.value
-                        )
-                    }
-                >
-
-                    <option value="All">
-                        All Verification
-                    </option>
-
-                    <option value="Verified">
-                        Verified
-                    </option>
-
-                    <option value="Pending">
-                        Pending
-                    </option>
-
-                    <option value="Rejected">
-                        Rejected
-                    </option>
-
-                </select>
-
-                {/* LOCATE */}
-
-                <button
-                    type="button"
-                    onClick={locateUser}
-                    disabled={locationLoading}
-                >
-                    {locationLoading
-                        ? "📍 Locating..."
-                        : "📍 Locate Me"}
-                </button>
-
-            </div>
-
-            {/* ==================================================
-                SEARCH ERROR
-            ================================================== */}
-
-            {searchError && (
-
-                <div className="error-message">
-
-                    ⚠️ {searchError}
-
-                </div>
-
-            )}
-
-            {/* ==================================================
-                DESTINATION
-            ================================================== */}
-
-            {destination && (
-
-                <div className="destination-info">
-
-                    <strong>
-                        🏁 Destination:
-                    </strong>{" "}
-
-                    {destination.query}
-
-                    {" — "}
-
-                    {destination.latitude.toFixed(5)}
-
-                    {", "}
-
-                    {destination.longitude.toFixed(5)}
-
-                </div>
-
-            )}
-
-            {/* ==================================================
-                ROUTE INFORMATION
-            ================================================== */}
-
-            {routeCreated &&
-                routeDistance !== null && (
-
-                    <div className="route-summary">
-
-                        <div className="route-title">
-                            🚗 Route Created
-                        </div>
-
-                        <div>
-
-                            🚗 Route:{" "}
-
-                            <strong>
-                                {routeDistance.toFixed(2)} km
-                            </strong>
-
-                            {" | "}
-
-                            ⏱️{" "}
-
-                            <strong>
-                                {formatRouteTime(
-                                    routeDuration
-                                )}
-                            </strong>
-
-                        </div>
-
-                        <div className="route-warning">
-
-                            ⚠️ Speed Cameras on Route:{" "}
-
-                            <strong>
-                                {routeSpeedCameras.length}
-                            </strong>{" "}
-
-                            camera
-                            {routeSpeedCameras.length === 1
-                                ? ""
-                                : "s"}
-
-                            {" "}
-                            (within 500 m of route)
-
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={clearRoute}
-                            className="clear-route-button"
-                        >
-                            ✕ Clear Route
-                        </button>
-
-                    </div>
-                )}
-
-            {/* ==================================================
-                ROUTE ERROR
-            ================================================== */}
-
-            {routeError && (
-
-                <div className="error-message">
-
-                    ⚠️ {routeError}
-
-                </div>
-
-            )}
-
-            {/* ==================================================
-                STATISTICS
-            ================================================== */}
-
-            <div className="camera-statistics">
-
-                <div className="stat-card">
-
-                    <span>
-                        Total
-                    </span>
-
-                    <strong>
-                        {statistics.total}
-                    </strong>
-
-                </div>
-
-                <div className="stat-card">
-
-                    <span>
-                        Speed
-                    </span>
-
-                    <strong>
-                        {statistics.speed}
-                    </strong>
-
-                </div>
-
-                <div className="stat-card">
-
-                    <span>
-                        Red Light
-                    </span>
-
-                    <strong>
-                        {statistics.redLight}
-                    </strong>
-
-                </div>
-
-                <div className="stat-card">
-
-                    <span>
-                        Verified
-                    </span>
-
-                    <strong>
-                        {statistics.verified}
-                    </strong>
-
-                </div>
-
-                <div className="stat-card">
-
-                    <span>
-                        Pending
-                    </span>
-
-                    <strong>
-                        {statistics.pending}
-                    </strong>
-
-                </div>
-
-                <div className="stat-card">
-
-                    <span>
-                        Cities
-                    </span>
-
-                    <strong>
-                        {statistics.cities}
-                    </strong>
-
-                </div>
-
-            </div>
-
-            {/* ==================================================
-                ROUTE CAMERA WARNING
-            ================================================== */}
-
-            {routeCreated && (
-
-                <div className="route-camera-section">
-
-                    <h2>
-                        ⚠️ Speed Cameras on Your Route
-                    </h2>
-
-                    <p>
-                        {routeCameraMessage}
-                    </p>
-
-                    {routeSpeedCameras.length > 0 && (
-
-                        <div className="route-camera-list">
-
-                            {routeSpeedCameras.map(
-                                camera => {
-
-                                    const distanceFromRoute =
-                                        camera.fromRouteKm *
-                                        1000;
-
-                                    return (
-
-                                        <div
-                                            className="route-camera-card"
-                                            key={camera.id}
-                                        >
-
-                                            <h3>
-
-                                                ⚠️{" "}
-
-                                                {camera.city ||
-                                                    "Unknown City"}
-
-                                                {" — "}
-
-                                                {camera.road_name ||
-                                                    "Unknown Road"}
-
-                                            </h3>
-
-                                            <p>
-
-                                                📍{" "}
-
-                                                <strong>
-                                                    {Math.round(
-                                                        distanceFromRoute
-                                                    )} m
-                                                </strong>{" "}
-                                                from route
-
-                                            </p>
-
-                                            {camera.routeDistanceKm !==
-                                                null && (
-
-                                                <p>
-
-                                                    🚗 About{" "}
-
-                                                    <strong>
-                                                        {camera.routeDistanceKm.toFixed(
-                                                            2
-                                                        )} km
-                                                    </strong>{" "}
-                                                    from start
-
-                                                </p>
-                                            )}
-
-                                            {camera.distanceToDestination !==
-                                                null && (
-
-                                                <p>
-
-                                                    🏁{" "}
-
-                                                    <strong>
-                                                        {camera.distanceToDestination.toFixed(
-                                                            2
-                                                        )} km
-                                                    </strong>{" "}
-                                                    to destination
-
-                                                </p>
-                                            )}
-
-                                            <p>
-
-                                                🏎{" "}
-
-                                                {camera.camera_type ||
-                                                    "Speed Camera"}
-
-                                            </p>
-
-                                            <p>
-
-                                                {verificationLabel(
-                                                    camera
-                                                ) === "Verified"
-                                                    ? "✅"
-                                                    : verificationLabel(
-                                                        camera
-                                                    ) === "Rejected"
-                                                        ? "🔴"
-                                                        : "🟡"}
-
-                                                {" "}
-
-                                                Verification:{" "}
-
-                                                {verificationLabel(
-                                                    camera
-                                                )}
-
-                                            </p>
-
-                                        </div>
-                                    );
-                                }
-                            )}
-
-                        </div>
-                    )}
-
-                </div>
-            )}
-
-            {/* ==================================================
-                CAMERA LIST
-            ================================================== */}
-
-            <div className="camera-list-section">
-
-                <h2>
-                    Cameras ({filteredCameras.length})
-                </h2>
-
-                {/* LOADING */}
-
-                {loading && (
-
-                    <div className="loading-message">
-                        Loading camera data...
-                    </div>
-
-                )}
-
-                {/* ERROR */}
-
-                {!loading &&
-                    cameraError && (
-
-                        <div className="error-message">
-
-                            ⚠️ Unable to load camera data.
-
-                            <br />
-
-                            <button
-                                type="button"
-                                onClick={loadCameras}
-                            >
-                                Retry
-                            </button>
-
-                        </div>
-                    )}
-
-                {/* EMPTY */}
-
-                {!loading &&
-                    !cameraError &&
-                    filteredCameras.length === 0 && (
-
-                        <div className="empty-message">
-
-                            No cameras match the selected filters.
-
-                        </div>
-                    )}
-
-                {/* CAMERA CARDS */}
-
-                {!loading &&
-                    !cameraError &&
-                    filteredCameras.length > 0 && (
-
-                        <div className="camera-list">
-
-                            {filteredCameras.map(
-                                camera => {
-
-                                    const distance =
-                                        getCameraDistance(
-                                            camera
-                                        );
-
-                                    const routeCamera =
-                                        routeSpeedCameras.find(
-                                            routeCameraItem =>
-                                                routeCameraItem.id ===
-                                                camera.id
-                                        );
-
-                                    return (
-
-                                        <div
-                                            className="camera-card"
-                                            key={camera.id}
-                                        >
-
-                                            <h3>
-
-                                                📍{" "}
-
-                                                {camera.city ||
-                                                    "Unknown City"}
-
-                                            </h3>
-
-                                            {camera.state && (
-
-                                                <p>
-
-                                                    <strong>
-                                                        State:
-                                                    </strong>{" "}
-
-                                                    {camera.state}
-
-                                                </p>
-                                            )}
-
-                                            <p>
-
-                                                <strong>
-                                                    Road:
-                                                </strong>{" "}
-
-                                                {camera.road_name ||
-                                                    "Unknown Road"}
-
-                                            </p>
-
-                                            <p>
-
-                                                <strong>
-                                                    Type:
-                                                </strong>{" "}
-
-                                                {camera.camera_type ||
-                                                    "Unknown"}
-
-                                            </p>
-
-                                            <p>
-
-                                                <strong>
-                                                    Verification:
-                                                </strong>{" "}
-
-                                                {verificationLabel(
-                                                    camera
-                                                )}
-
-                                            </p>
-
-                                            {distance !== null && (
-
-                                                <p>
-
-                                                    <strong>
-                                                        Distance:
-                                                    </strong>{" "}
-
-                                                    {formatDistance(
-                                                        distance
-                                                    )}
-
-                                                </p>
-                                            )}
-
-                                            {routeCamera && (
-
-                                                <>
-
-                                                    <p>
-
-                                                        ⚠️{" "}
-
-                                                        <strong>
-                                                            Speed camera within
-                                                            500 m of your route
-                                                        </strong>
-
-                                                    </p>
-
-                                                    <p>
-
-                                                        🚗{" "}
-
-                                                        <strong>
-                                                            Route Distance:
-                                                        </strong>{" "}
-
-                                                        {routeCamera.routeDistanceKm !==
-                                                            null
-
-                                                            ? routeCamera.routeDistanceKm.toFixed(
-                                                                2
-                                                            )
-
-                                                            : "—"}
-
-                                                        {" km"}
-
-                                                    </p>
-
-                                                    <p>
-
-                                                        📍{" "}
-
-                                                        <strong>
-                                                            From Route:
-                                                        </strong>{" "}
-
-                                                        {Math.round(
-                                                            routeCamera.fromRouteKm *
-                                                            1000
-                                                        )}
-
-                                                        {" m"}
-
-                                                    </p>
-
-                                                </>
-                                            )}
-
-                                        </div>
-                                    );
-                                }
-                            )}
-
-                        </div>
-                    )}
-
-            </div>
-
-            {/* ==================================================
-                MAP
-            ================================================== */}
-
-            <div
-                className="camera-map-container"
-                style={{
-                    height: "600px",
-                    width: "100%",
-                    marginTop: "30px"
-                }}
+            <span
+              className={`gcm-popup-type gcm-popup-type-${type}`}
             >
+              {type === "speed"
+                ? "S"
+                : type === "red"
+                ? "R"
+                : "C"}
+            </span>
+          </div>
 
-                <MapContainer
-                    center={DEFAULT_CENTER}
-                    zoom={DEFAULT_ZOOM}
-                    style={{
-                        height: "100%",
-                        width: "100%"
-                    }}
+          <div className="gcm-popup-status-row">
+            <span
+              className={`gcm-status-badge gcm-status-${String(
+                camera.status || "unknown"
+              ).toLowerCase()}`}
+            >
+              {status}
+            </span>
+
+            <span
+              className={`gcm-verification-badge gcm-verification-${String(
+                camera.verification_status ||
+                  "pending"
+              ).toLowerCase()}`}
+            >
+              {verification}
+            </span>
+          </div>
+
+          <div className="gcm-popup-grid">
+            <div className="gcm-popup-field">
+              <span>LOCATION</span>
+
+              <strong>
+                {camera.city ||
+                  camera.state ||
+                  "Unknown location"}
+              </strong>
+            </div>
+
+            <div className="gcm-popup-field">
+              <span>ROAD</span>
+
+              <strong>
+                {camera.road_name ||
+                  "Not specified"}
+              </strong>
+            </div>
+
+            <div className="gcm-popup-field">
+              <span>STATE</span>
+
+              <strong>
+                {camera.state ||
+                  "Not specified"}
+              </strong>
+            </div>
+
+            <div className="gcm-popup-field">
+              <span>CAMERA ID</span>
+
+              <strong>
+                #{camera.id ?? "—"}
+              </strong>
+            </div>
+
+            {camera.speed_limit !== null && (
+              <div className="gcm-popup-field">
+                <span>SPEED LIMIT</span>
+
+                <strong>
+                  {camera.speed_limit}
+                </strong>
+              </div>
+            )}
+
+            {camera.enforcement_type && (
+              <div className="gcm-popup-field gcm-popup-field-wide">
+                <span>ENFORCEMENT</span>
+
+                <strong>
+                  {camera.enforcement_type}
+                </strong>
+              </div>
+            )}
+
+            {camera.source && (
+              <div className="gcm-popup-field gcm-popup-field-wide">
+                <span>SOURCE</span>
+
+                <strong>
+                  {camera.source}
+                </strong>
+              </div>
+            )}
+          </div>
+
+          {routeCamera && (
+            <div className="gcm-route-match">
+              <span>●</span>
+
+              Camera detected near current route
+            </div>
+          )}
+
+          {camera.source_url && (
+            <a
+              className="gcm-source-link"
+              href={camera.source_url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              View source →
+            </a>
+          )}
+        </div>
+      </Popup>
+    );
+  };
+
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
+  return (
+    <div
+      className="gcm-map-page"
+      ref={mapContainerRef}
+    >
+
+      {/* ======================================================
+          TOP NETWORK BAR
+      ====================================================== */}
+
+      <header className="gcm-map-header">
+        <div className="gcm-brand">
+          <div className="gcm-brand-mark">
+            G
+          </div>
+
+          <div className="gcm-brand-copy">
+            <strong>
+              GLOBAL CAMERA MAP
+            </strong>
+
+            <span>
+              TRAFFIC INTELLIGENCE PLATFORM
+            </span>
+          </div>
+        </div>
+
+        <div className="gcm-header-right">
+          <span className="gcm-breadcrumb">
+            GCM / NETWORK / LIVE
+          </span>
+
+          <button
+            type="button"
+            className="gcm-header-refresh"
+            title="Refresh camera network"
+            aria-label="Refresh camera network"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            ↻
+          </button>
+        </div>
+      </header>
+
+
+      {/* ======================================================
+          MAP
+      ====================================================== */}
+
+      <section className="gcm-map-shell">
+
+        <MapContainer
+          center={INDIA_CENTER}
+          zoom={DEFAULT_ZOOM}
+          minZoom={3}
+          maxZoom={18}
+          scrollWheelZoom={true}
+          zoomControl={false}
+          className="gcm-leaflet-map"
+          whenReady={() => setMapReady(true)}
+        >
+
+          <TileLayer
+            attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            subdomains="abcd"
+            maxZoom={20}
+          />
+
+          <ZoomControls />
+
+          <MapController
+            focusLocation={focusLocation}
+            fitCoordinates={fitCoordinates}
+          />
+
+
+          {/* ==================================================
+              ROUTE
+          ================================================== */}
+
+          {route.length > 1 && (
+            <>
+              <Polyline
+                positions={route}
+                pathOptions={{
+                  className: "gcm-route-line",
+                  weight: 6,
+                  opacity: 0.9,
+                }}
+              />
+
+              <Polyline
+                positions={route}
+                pathOptions={{
+                  className:
+                    "gcm-route-line-core",
+                  weight: 2,
+                  opacity: 1,
+                }}
+              />
+            </>
+          )}
+
+
+          {/* ==================================================
+              CAMERAS
+          ================================================== */}
+
+          <MarkerClusterGroup
+            chunkedLoading={true}
+            maxClusterRadius={45}
+            spiderfyOnMaxZoom={true}
+            showCoverageOnHover={false}
+            zoomToBoundsOnClick={true}
+            removeOutsideVisibleBounds={true}
+            animate={true}
+          >
+            {visibleCameras.map((camera) => {
+              const type =
+                getCameraType(camera);
+
+              return (
+                <Marker
+                  key={String(camera.id)}
+                  position={[
+                    camera.latitude,
+                    camera.longitude,
+                  ]}
+                  icon={CAMERA_ICONS[type]}
+                  title={
+                    getCameraTypeLabel(camera)
+                  }
                 >
-
-                    {/* MAP REF */}
-
-                    <MapRefController
-                        mapRef={mapRef}
-                    />
-
-                    {/* MAP CONTROLLER */}
-
-                    <MapController
-                        routeCoordinates={
-                            routeCoordinates
-                        }
-                        destination={
-                            destination
-                        }
-                        userLocation={
-                            userLocation
-                        }
-                    />
-
-                    {/* TILE LAYER */}
-
-                    <TileLayer
-                        attribution="&copy; OpenStreetMap contributors"
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-
-                    {/* ==================================================
-                        CAMERA MARKERS
-                    ================================================== */}
-
-                    {filteredCameras.map(
-                        camera => {
-
-                            const latitude =
-                                Number(
-                                    camera.latitude
-                                );
-
-                            const longitude =
-                                Number(
-                                    camera.longitude
-                                );
-
-                            if (
-                                !Number.isFinite(
-                                    latitude
-                                ) ||
-                                !Number.isFinite(
-                                    longitude
-                                )
-                            ) {
-
-                                return null;
-                            }
-
-                            const isRouteCamera =
-                                routeSpeedCameras.some(
-                                    routeCamera =>
-                                        routeCamera.id ===
-                                        camera.id
-                                );
-
-                            const routeCameraDetails =
-                                routeSpeedCameras.find(
-                                    routeCamera =>
-                                        routeCamera.id ===
-                                        camera.id
-                                );
-
-                            return (
-
-                                <Marker
-                                    key={camera.id}
-                                    position={[
-                                        latitude,
-                                        longitude
-                                    ]}
-                                    icon={
-                                        createCameraIcon(
-                                            camera.camera_type,
-                                            camera.verification_status,
-                                            isRouteCamera
-                                        )
-                                    }
-                                >
-
-                                    <Popup>
-
-                                        <div>
-
-                                            <h3>
-
-                                                {isRouteCamera
-                                                    ? "⚠️ "
-                                                    : "📍 "}
-
-                                                {camera.city ||
-                                                    "Unknown City"}
-
-                                            </h3>
-
-                                            {isRouteCamera && (
-
-                                                <p>
-
-                                                    <strong>
-                                                        ⚠️ Speed camera
-                                                        within 500 m
-                                                        of your route
-                                                    </strong>
-
-                                                </p>
-                                            )}
-
-                                            <p>
-
-                                                <strong>
-                                                    State:
-                                                </strong>{" "}
-
-                                                {camera.state ||
-                                                    "Unknown"}
-
-                                            </p>
-
-                                            <p>
-
-                                                <strong>
-                                                    Road:
-                                                </strong>{" "}
-
-                                                {camera.road_name ||
-                                                    "Unknown Road"}
-
-                                            </p>
-
-                                            <p>
-
-                                                <strong>
-                                                    Type:
-                                                </strong>{" "}
-
-                                                {camera.camera_type ||
-                                                    "Unknown"}
-
-                                            </p>
-
-                                            <p>
-
-                                                <strong>
-                                                    Verification:
-                                                </strong>{" "}
-
-                                                {verificationLabel(
-                                                    camera
-                                                )}
-
-                                            </p>
-
-                                            {isRouteCamera &&
-                                                routeCameraDetails && (
-
-                                                    <>
-
-                                                        <p>
-
-                                                            <strong>
-                                                                From Route:
-                                                            </strong>{" "}
-
-                                                            {Math.round(
-                                                                routeCameraDetails.fromRouteKm *
-                                                                1000
-                                                            )}
-
-                                                            {" m"}
-
-                                                        </p>
-
-                                                        {routeCameraDetails.routeDistanceKm !==
-                                                            null && (
-
-                                                            <p>
-
-                                                                <strong>
-                                                                    Route Distance:
-                                                                </strong>{" "}
-
-                                                                {routeCameraDetails.routeDistanceKm.toFixed(
-                                                                    2
-                                                                )}
-
-                                                                {" km"}
-
-                                                            </p>
-                                                        )}
-
-                                                        {routeCameraDetails.distanceToDestination !==
-                                                            null && (
-
-                                                            <p>
-
-                                                                <strong>
-                                                                    To Destination:
-                                                                </strong>{" "}
-
-                                                                {routeCameraDetails.distanceToDestination.toFixed(
-                                                                    2
-                                                                )}
-
-                                                                {" km"}
-
-                                                            </p>
-                                                        )}
-
-                                                    </>
-                                                )}
-
-                                        </div>
-
-                                    </Popup>
-
-                                </Marker>
-                            );
-                        }
-                    )}
-
-                    {/* ==================================================
-                        DESTINATION MARKER
-                    ================================================== */}
-
-                    {destination && (
-
-                        <Marker
-                            position={[
-                                destination.latitude,
-                                destination.longitude
-                            ]}
-                            icon={
-                                destinationIcon
-                            }
-                        >
-
-                            <Popup>
-
-                                <strong>
-                                    🏁 Destination
-                                </strong>
-
-                                <br />
-
-                                {destination.query}
-
-                                <br />
-
-                                {destination.latitude.toFixed(
-                                    5
-                                )}
-
-                                {", "}
-
-                                {destination.longitude.toFixed(
-                                    5
-                                )}
-
-                            </Popup>
-
-                        </Marker>
-                    )}
-
-                    {/* ==================================================
-                        USER LOCATION MARKER
-                    ================================================== */}
-
-                    {userLocation && (
-
-                        <Marker
-                            position={[
-                                userLocation.latitude,
-                                userLocation.longitude
-                            ]}
-                            icon={
-                                userLocationIcon
-                            }
-                        >
-
-                            <Popup>
-                                📍 Your Location
-                            </Popup>
-
-                        </Marker>
-                    )}
-
-                    {/* ==================================================
-                        ROUTE
-                    ================================================== */}
-
-                    {routeCoordinates.length > 1 && (
-
-                        <Polyline
-                            positions={
-                                routeCoordinates
-                            }
-                            pathOptions={{
-                                color:
-                                    "#2563eb",
-
-                                weight:
-                                    6,
-
-                                opacity:
-                                    0.85
-                            }}
-                        />
-                    )}
-
-                </MapContainer>
-
+                  {renderCameraPopup(camera)}
+                </Marker>
+              );
+            })}
+          </MarkerClusterGroup>
+
+        </MapContainer>
+
+
+        {/* ====================================================
+            MAP BRAND PANEL
+        ==================================================== */}
+
+        <div className="gcm-map-brand-panel">
+          <span className="gcm-panel-kicker">
+            GCM / LIVE NETWORK
+          </span>
+
+          <h1>
+            Global Camera Map
+          </h1>
+
+          <p>
+            Traffic enforcement intelligence
+          </p>
+        </div>
+
+
+        {/* ====================================================
+            LIVE COUNTERS
+        ==================================================== */}
+
+        <div className="gcm-live-counter-panel">
+
+          <div className="gcm-live-counter">
+            <strong>
+              {visibleCameras.length}
+            </strong>
+
+            <span>
+              VISIBLE
+            </span>
+          </div>
+
+          <div className="gcm-live-counter">
+            <strong>
+              {cameras.length}
+            </strong>
+
+            <span>
+              INDEXED
+            </span>
+          </div>
+
+          <div className="gcm-live-indicator">
+            <span />
+            LIVE
+          </div>
+
+          {lastUpdated && (
+            <div className="gcm-updated">
+              Updated{" "}
+              {formatUpdatedTime(lastUpdated)}
             </div>
-
-            {/* ==================================================
-                MAP LEGEND
-            ================================================== */}
-
-            <div className="map-legend">
-
-                <h3>
-                    Camera Status
-                </h3>
-
-                <p>
-                    🟢 Verified
-                </p>
-
-                <p>
-                    🟡 Pending
-                </p>
-
-                <p>
-                    🔴 Rejected
-                </p>
-
-                {routeCreated && (
-
-                    <p>
-                        ⚠️ Red marker = Speed camera within
-                        500 m of route
-                    </p>
-
-                )}
-
-                {userLocation && (
-
-                    <p>
-                        📍 Your Location
-                    </p>
-
-                )}
-
-                {destination && (
-
-                    <p>
-                        🏁 Destination
-                    </p>
-
-                )}
-
-            </div>
+          )}
 
         </div>
-    );
+
+
+        {/* ====================================================
+            CAMERA FILTER
+        ==================================================== */}
+
+        <aside className="gcm-control-panel">
+
+          <div className="gcm-control-heading">
+            <span>
+              CAMERA FILTER
+            </span>
+
+            <small>
+              {visibleCameras.length} visible
+            </small>
+          </div>
+
+          <div className="gcm-filter-grid">
+
+            <button
+              type="button"
+              className={
+                activeFilter === "all"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setActiveFilter("all")
+              }
+            >
+              <span>All</span>
+              <strong>
+                {statistics.all}
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeFilter === "speed"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setActiveFilter("speed")
+              }
+            >
+              <span>Speed</span>
+              <strong>
+                {statistics.speed}
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeFilter === "red"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setActiveFilter("red")
+              }
+            >
+              <span>Red Light</span>
+              <strong>
+                {statistics.red}
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeFilter === "other"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setActiveFilter("other")
+              }
+            >
+              <span>Other</span>
+              <strong>
+                {statistics.other}
+              </strong>
+            </button>
+
+          </div>
+
+
+          {/* ==================================================
+              CAMERA SEARCH
+          ================================================== */}
+
+          <div className="gcm-search-row">
+
+            <span className="gcm-search-icon">
+              ⌕
+            </span>
+
+            <input
+              type="text"
+              value={search}
+              placeholder="Search cameras, city or road..."
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  handleCameraSearch();
+                }
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={handleCameraSearch}
+              disabled={!search.trim()}
+            >
+              Search
+            </button>
+
+          </div>
+
+
+          {/* ==================================================
+              CURRENT LOCATION
+          ================================================== */}
+
+          <button
+            type="button"
+            className="gcm-location-button"
+            onClick={handleCurrentLocation}
+            disabled={locationLoading}
+          >
+            <span>
+              ◎
+            </span>
+
+            {locationLoading
+              ? "Locating..."
+              : "Use My Current Location"}
+          </button>
+
+          {locationError && (
+            <div className="gcm-inline-error">
+              {locationError}
+            </div>
+          )}
+
+
+          {/* ==================================================
+              ROUTE PLANNER
+          ================================================== */}
+
+          <div className="gcm-route-planner">
+
+            <div className="gcm-section-label">
+              ROUTE PLANNER
+            </div>
+
+            <div className="gcm-route-title">
+              Find camera coverage
+            </div>
+
+            <div className="gcm-route-search">
+
+              <span>
+                ⌕
+              </span>
+
+              <input
+                type="text"
+                value={destination}
+                placeholder="Search destination..."
+                onChange={(event) =>
+                  setDestination(
+                    event.target.value
+                  )
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    handleRoute();
+                  }
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={handleRoute}
+                disabled={
+                  routeLoading ||
+                  !destination.trim()
+                }
+              >
+                {routeLoading
+                  ? "..."
+                  : "Search"}
+              </button>
+
+            </div>
+
+            <button
+              type="button"
+              className="gcm-route-button"
+              onClick={handleRoute}
+              disabled={
+                routeLoading ||
+                !destination.trim()
+              }
+            >
+              {routeLoading
+                ? "Calculating route..."
+                : "Find Driving Route"}
+            </button>
+
+            {route.length > 1 && (
+              <button
+                type="button"
+                className="gcm-clear-route"
+                onClick={clearRoute}
+              >
+                Clear route
+              </button>
+            )}
+
+            {routeError && (
+              <div className="gcm-inline-error">
+                {routeError}
+              </div>
+            )}
+
+            {route.length > 1 && (
+              <div className="gcm-route-result">
+                <span className="gcm-route-dot" />
+
+                <div>
+                  <strong>
+                    Route coverage active
+                  </strong>
+
+                  <small>
+                    {routeCameras.length} camera
+                    {routeCameras.length === 1
+                      ? ""
+                      : "s"} near route
+                  </small>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+
+          {/* ==================================================
+              NETWORK STATUS
+          ================================================== */}
+
+          <div className="gcm-network-status">
+            <span className="gcm-network-status-dot" />
+
+            <span>
+              Network Operational
+            </span>
+
+            <span className="gcm-network-status-count">
+              {visibleCameras.length}
+              {" "}
+              visible cameras
+            </span>
+          </div>
+
+        </aside>
+
+
+        {/* ====================================================
+            LEGEND
+        ==================================================== */}
+
+        <div className="gcm-map-legend">
+
+          <div className="gcm-legend-title">
+            CAMERA LEGEND
+          </div>
+
+          <div className="gcm-legend-item">
+            <span className="gcm-legend-marker speed">
+              S
+            </span>
+
+            <span>
+              Speed Camera
+            </span>
+          </div>
+
+          <div className="gcm-legend-item">
+            <span className="gcm-legend-marker red">
+              R
+            </span>
+
+            <span>
+              Red Light Camera
+            </span>
+          </div>
+
+          <div className="gcm-legend-item">
+            <span className="gcm-legend-marker other">
+              C
+            </span>
+
+            <span>
+              Other Camera
+            </span>
+          </div>
+
+        </div>
+
+
+        {/* ====================================================
+            LOADING
+        ==================================================== */}
+
+        {loading && (
+          <div className="gcm-map-loading">
+            <div className="gcm-spinner" />
+
+            <span>
+              Loading camera network...
+            </span>
+          </div>
+        )}
+
+
+        {/* ====================================================
+            API ERROR
+        ==================================================== */}
+
+        {error && !loading && (
+          <div className="gcm-map-error">
+
+            <strong>
+              Network connection issue
+            </strong>
+
+            <span>
+              {error}
+            </span>
+
+            <button
+              type="button"
+              onClick={handleRefresh}
+            >
+              Retry
+            </button>
+
+          </div>
+        )}
+
+      </section>
+
+    </div>
+  );
 }
